@@ -6,7 +6,7 @@ Click on the `+run+` button for the code block below.
 
 [source,bash,run]
 ----
-dnf install -y podman
+sudo dnf install -y podman
 ----
 
 The output should look similar to the following screenshot.
