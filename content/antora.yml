@@ -1,0 +1,9 @@
+---
+name: modules
+version: master
+
+asciidoc:
+  attributes:
+    lab_name: "Configure a rootless Podman service"
+    release-version: master
+    page-pagination: true

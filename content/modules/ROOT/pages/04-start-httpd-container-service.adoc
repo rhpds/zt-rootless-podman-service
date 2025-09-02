@@ -1,0 +1,25 @@
+In this assignment we’ll start the httpd container service.
+
+____
+[!IMPORTANT] You may have noticed that we have not pulled a container
+running Apache from the docker registry. That is because Podman will
+automatically pull the container the first time the container service is
+started.
+____
+
+Run the following command to reload the systemd manager configuration.
+
+[source,bash,run]
+----
+systemctl --user daemon-reload
+----
+
+Next, start the `+httpd.service+` that we previously configured.
+
+[source,bash,run]
+----
+systemctl --user start httpd.service
+----
+
+Starting the `+httpd.service+` will automatically pull the httpd
+container from the docker.io registry.

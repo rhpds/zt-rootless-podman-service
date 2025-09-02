@@ -1,0 +1,24 @@
+---
+antora:
+  name: modules
+  dir: www
+  modules:
+    - name: "01-install-podman"
+      label: "Install Podman"
+      solveButton: false
+    - name: "02-container-service-files"
+      label: "Container Service Files"
+      solveButton: false
+    - name: "03-configure-unit-files"
+      label: "Configure Unit Files"
+      solveButton: false
+    - name: "04-start-httpd-container-service"
+      label: "Start Httpd Container Service"
+      solveButton: false
+    - name: "05-verify-container-service"
+      label: "Verify Container Service"
+      solveButton: false
+
+tabs:
+  - name: ">_ terminal"
+    url: /wetty_rhel/ssh/root

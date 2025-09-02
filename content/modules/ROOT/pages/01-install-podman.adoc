@@ -1,0 +1,17 @@
+== Install Podman
+
+The first task is to install Podman.
+
+Click on the `+run+` button for the code block below.
+
+[source,bash,run]
+----
+dnf install -y podman
+----
+
+The output should look similar to the following screenshot.
+
+.Aug-27-2024_at_12.36.58-image.png
+image::../assets/Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
+
+Proceed to the next assignment.
