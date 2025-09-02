@@ -6,7 +6,7 @@ files.
 Switch to the `+Editor+` tab by clicking this button: link:tab-1[button
 label="`Editor`" background="`#ee0000`" color="`#c7c7c7`"] In the
 `+Editor+` tab, click on `+httpd.container+`.
-image:../assets/Aug-28-2024_at_13.34.46-image.png[Aug-28-2024_at_13.34.46-image.png]
+image:Aug-28-2024_at_13.34.46-image.png[Aug-28-2024_at_13.34.46-image.png]
 
 Copy and paste the following code blog into the editor. Once pasted, the
 editor will automatically save the file.
@@ -43,7 +43,7 @@ defines port 8080 on the host should map to port 80 in the container.
 == Edit the httpd-data.volume file
 
 In the `+Editor+` tab, click on `+httpd-data.volume+`.
-image:../assets/Aug-28-2024_at_13.48.33-image.png[Aug-28-2024_at_13.48.33-image.png]
+image::Aug-28-2024_at_13.48.33-image.png[Aug-28-2024_at_13.48.33-image.png]
 Copy and paste the following code blog into the editor.
 
 [source,ini]
@@ -72,7 +72,7 @@ ls /home/garfield/.config/containers/systemd/
 ----
 
 .Aug-28-2024_at_14.40.44-image.png
-image::../assets/Aug-28-2024_at_14.40.44-image.png[Aug-28-2024_at_14.40.44-image.png]
+image::Aug-28-2024_at_14.40.44-image.png[Aug-28-2024_at_14.40.44-image.png]
 
 Run the following to view the contents of `+httpd.container+`.
 
