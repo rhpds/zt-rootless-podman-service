@@ -1,17 +1,22 @@
+:imagesdir: ../assets/images
+
 == Install Podman
 
 The first task is to install Podman.
 
 Click on the `+run+` button for the code block below.
 
+.Run button
+image::run_button.png[run_button.png]
+
 [source,bash,run]
 ----
-dnf install -y podman
+sudo dnf install -y podman
 ----
 
 The output should look similar to the following screenshot.
 
-.Aug-27-2024_at_12.36.58-image.png
+.Install Podman and Container tools
 image::Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
 
 Proceed to the next assignment.

@@ -62,19 +62,19 @@ the container. We can directly modify the index.html file through the
 persistent volume mapping.
 
 Persistent volumes for all rootless container services are located in
-`+/home/garfield/.local/share/containers/storage/volumes/+`. For our
+`+/home/rhel/.local/share/containers/storage/volumes/+`. For our
 httpd service, recall that we defined the `+httpd-data.volume+` file.
 The volume is contained in `+systemd-httpd-data/+`.
 
 [source,bash,run]
 ----
-ls -la /home/garfield/.local/share/containers/storage/volumes/systemd-httpd-data/
+ls -la /home/rhel/.local/share/containers/storage/volumes/systemd-httpd-data/
 ----
 
 .Aug-28-2024_at_14.57.37-image.png
 image::Aug-28-2024_at_14.57.37-image.png[Aug-28-2024_at_14.57.37-image.png]
 
-Notice that the `+_data+` directory is owned by garfield:garfield as we
+Notice that the `+_data+` directory is owned by rhel:rhel as we
 specified in the `+httpd-data.volume+` unit file.
 
 Switch to the Editor tab by clicking on this button: link:tab-1[button

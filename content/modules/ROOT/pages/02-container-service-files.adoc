@@ -21,12 +21,12 @@ here].
 
 == Create the configuration directory
 
-In the terminal we are logged in as the user `+garfield+`. `+garfield+`
+In the terminal we are logged in as the user `+rhel+`. `+rhel+`
 is not a privileged user.
 
-We’ll create a directory in `+garfield+`’s home directory to store our
+We’ll create a directory in `+rhel+`’s home directory to store our
 unit files. The unit files will be stored in
-`+/home/garfield/.config/containers/systemd/+`.
+`+/home/rhel/.config/containers/systemd/+`.
 
 Run the command below by clicking on the `+run+` button.
 
