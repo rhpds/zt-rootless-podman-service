@@ -12,6 +12,6 @@ dnf install -y podman
 The output should look similar to the following screenshot.
 
 .Aug-27-2024_at_12.36.58-image.png
-image::../assets/Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
+image::Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
 
 Proceed to the next assignment.

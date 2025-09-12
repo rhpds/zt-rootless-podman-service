@@ -1,11 +1,12 @@
+:imagesdir: ../assets/images
+== Start Httpd Container Service
+
 In this assignment we’ll start the httpd container service.
 
-____
-[!IMPORTANT] You may have noticed that we have not pulled a container
+IMPORTANT: You may have noticed that we have not pulled a container
 running Apache from the docker registry. That is because Podman will
 automatically pull the container the first time the container service is
 started.
-____
 
 Run the following command to reload the systemd manager configuration.
 

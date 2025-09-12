@@ -1,3 +1,6 @@
+:imagesdir: ../assets/images
+== Verify Container Service
+
 We’ll check the service is running properly and then modify the
 index.html through the persistent volume.
 
@@ -13,7 +16,7 @@ podman ps
 ----
 
 .Aug-28-2024_at_14.44.51-image.png
-image::../assets/Aug-28-2024_at_14.44.51-image.png[Aug-28-2024_at_14.44.51-image.png]
+image::Aug-28-2024_at_14.44.51-image.png[Aug-28-2024_at_14.44.51-image.png]
 
 Let’s check the systemd service is running the container.
 
@@ -23,7 +26,7 @@ systemctl --user status httpd --no-pager
 ----
 
 .Aug-28-2024_at_14.46.02-image.png
-image::../assets/Aug-28-2024_at_14.46.02-image.png[Aug-28-2024_at_14.46.02-image.png]
+image::Aug-28-2024_at_14.46.02-image.png[Aug-28-2024_at_14.46.02-image.png]
 
 You can stop and start the httpd service with the following commands.
 
@@ -49,7 +52,7 @@ curl http://localhost:8080
 ----
 
 .Aug-28-2024_at_14.52.56-image.png
-image::../assets/Aug-28-2024_at_14.52.56-image.png[Aug-28-2024_at_14.52.56-image.png]
+image::Aug-28-2024_at_14.52.56-image.png[Aug-28-2024_at_14.52.56-image.png]
 
 == Modify index.html
 
@@ -69,14 +72,14 @@ ls -la /home/garfield/.local/share/containers/storage/volumes/systemd-httpd-data
 ----
 
 .Aug-28-2024_at_14.57.37-image.png
-image::../assets/Aug-28-2024_at_14.57.37-image.png[Aug-28-2024_at_14.57.37-image.png]
+image::Aug-28-2024_at_14.57.37-image.png[Aug-28-2024_at_14.57.37-image.png]
 
 Notice that the `+_data+` directory is owned by garfield:garfield as we
 specified in the `+httpd-data.volume+` unit file.
 
 Switch to the Editor tab by clicking on this button: link:tab-1[button
 label="`Editor`" background="`#ee0000`" color="`#c7c7c7`"]
-image:../assets/Aug-28-2024_at_15.00.21-image.png[Aug-28-2024_at_15.00.21-image.png]
+image::Aug-28-2024_at_15.00.21-image.png[Aug-28-2024_at_15.00.21-image.png]
 
 Change the sentence `+It works!+` to `+I love lasagna.+`.
 
@@ -95,4 +98,4 @@ curl http://localhost:8080
 ----
 
 .Aug-28-2024_at_15.11.49-image.png
-image::../assets/Aug-28-2024_at_15.11.49-image.png[Aug-28-2024_at_15.11.49-image.png]
+image::Aug-28-2024_at_15.11.49-image.png[Aug-28-2024_at_15.11.49-image.png]
