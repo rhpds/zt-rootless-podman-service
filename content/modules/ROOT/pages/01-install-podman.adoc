@@ -2,6 +2,11 @@
 
 == Install Podman
 
+NOTE: Podman is already installed on the system. This section is for reference only.
+
+== Podman Installation Steps
+[%collapsible]
+====
 The first task is to install Podman.
 
 Click on the `+run+` button for the code block below.
@@ -19,4 +24,7 @@ The output should look similar to the following screenshot.
 .Install Podman and Container tools
 image::Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
 
+====
+
 Proceed to the next assignment.
+

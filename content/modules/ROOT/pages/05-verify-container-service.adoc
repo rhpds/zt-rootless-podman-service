@@ -6,17 +6,15 @@ index.html through the persistent volume.
 
 == Check the service
 
-In the link:tab-0[button label="`rhel`" background="`#ee0000`"
-color="`#c7c7c7`"] terminal, run the following command to check that the
-httpd container is running.
+Run the following command to check that the httpd container is running.
 
 [source,bash,run]
 ----
 podman ps
 ----
 
-.Aug-28-2024_at_14.44.51-image.png
-image::Aug-28-2024_at_14.44.51-image.png[Aug-28-2024_at_14.44.51-image.png]
+.podman ps output
+image::podman_ps.png[podman_ps.png]
 
 Let’s check the systemd service is running the container.
 
@@ -25,8 +23,8 @@ Let’s check the systemd service is running the container.
 systemctl --user status httpd --no-pager
 ----
 
-.Aug-28-2024_at_14.46.02-image.png
-image::Aug-28-2024_at_14.46.02-image.png[Aug-28-2024_at_14.46.02-image.png]
+.systemctl status output
+image::systemctl_status.png[systemctl_status.png]
 
 You can stop and start the httpd service with the following commands.
 
@@ -51,51 +49,5 @@ Now let’s check that the web server actually works.
 curl http://localhost:8080
 ----
 
-.Aug-28-2024_at_14.52.56-image.png
-image::Aug-28-2024_at_14.52.56-image.png[Aug-28-2024_at_14.52.56-image.png]
-
-== Modify index.html
-
-Let’s modify the index.html of the web server. We do this by editing the
-index.html file without having to initiate a terminal connection into
-the container. We can directly modify the index.html file through the
-persistent volume mapping.
-
-Persistent volumes for all rootless container services are located in
-`+/home/rhel/.local/share/containers/storage/volumes/+`. For our
-httpd service, recall that we defined the `+httpd-data.volume+` file.
-The volume is contained in `+systemd-httpd-data/+`.
-
-[source,bash,run]
-----
-ls -la /home/rhel/.local/share/containers/storage/volumes/systemd-httpd-data/
-----
-
-.Aug-28-2024_at_14.57.37-image.png
-image::Aug-28-2024_at_14.57.37-image.png[Aug-28-2024_at_14.57.37-image.png]
-
-Notice that the `+_data+` directory is owned by rhel:rhel as we
-specified in the `+httpd-data.volume+` unit file.
-
-Switch to the Editor tab by clicking on this button: link:tab-1[button
-label="`Editor`" background="`#ee0000`" color="`#c7c7c7`"]
-image::Aug-28-2024_at_15.00.21-image.png[Aug-28-2024_at_15.00.21-image.png]
-
-Change the sentence `+It works!+` to `+I love lasagna.+`.
-
-[source,text]
-----
-I love lasagna
-----
-
-Switch back to the link:tab-0[button label="`rhel`"
-background="`#ee0000`" color="`#c7c7c7`"] terminal. Run the curl command
-again.
-
-[source,bash,run]
-----
-curl http://localhost:8080
-----
-
-.Aug-28-2024_at_15.11.49-image.png
-image::Aug-28-2024_at_15.11.49-image.png[Aug-28-2024_at_15.11.49-image.png]
+.curl output
+image::curl_output.png[curl_output.png]

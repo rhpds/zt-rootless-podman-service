@@ -7,17 +7,11 @@ files.
 
 == Edit the httpd.container file
 
-Switch to the `+Editor+` tab by clicking this button: link:tab-1[button
-label="`Editor`" background="`#ee0000`" color="`#c7c7c7`"] In the
-`+Editor+` tab, click on `+httpd.container+`.
+Run the command below by clicking on the `+run+` button to configure the `+httpd.container+` file.
 
-image::Aug-28-2024_at_13.34.46-image.png[Aug-28-2024_at_13.34.46-image.png]
-
-Copy and paste the following code blog into the editor. Once pasted, the
-editor will automatically save the file.
-
-[source,ini]
+[source,bash,run]
 ----
+tee -a /home/rhel/.config/containers/systemd/httpd.container << EOF
 [Service]
 Restart=always
 
@@ -32,6 +26,7 @@ PublishPort=8080:80/tcp
 
 [Install]
 WantedBy=default.target
+EOF
 ----
 
 The `+[Service]+` section specifies that the `+httpd.container+` service
@@ -47,17 +42,15 @@ defines port 8080 on the host should map to port 80 in the container.
 
 == Edit the httpd-data.volume file
 
-In the `+Editor+` tab, click on `+httpd-data.volume+`.
+Run the command below by clicking on the `+run+` button to configure the `+httpd-data.volume+` file.
 
-image::Aug-28-2024_at_13.48.33-image.png[Aug-28-2024_at_13.48.33-image.png]
-
-Copy and paste the following code blog into the editor.
-
-[source,ini]
+[source,bash,run]
 ----
+tee -a /home/rhel/.config/containers/systemd/httpd-data.volume << EOF
 [Volume]
 User=rhel
 Group=rhel
+EOF
 ----
 
 The `+Volume+` section specifies that the user `+rhel+` and members
@@ -67,9 +60,6 @@ that will be created.
 == Verify configuration files have been created successfully
 
 Let’s check that the configuration files have been created and saved.
-Switch to the `+rhel+` terminal by clicking this button:
-link:tab-0[button label="`rhel`" background="`#ee0000`"
-color="`#c7c7c7`"]
 
 Run the following command to find the unit files we just saved.
 
