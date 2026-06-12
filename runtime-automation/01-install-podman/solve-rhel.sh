@@ -1,2 +1,7 @@
 #!/bin/sh
-echo "Solved module called 01-install-podman" >> /tmp/progress.log
+set -e
+
+# solve-rhel.sh for 01-install-podman.adoc
+# Execute the bash commands found in the content page.
+
+sudo dnf install -y podman
