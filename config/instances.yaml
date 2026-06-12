@@ -5,8 +5,6 @@ virtualmachines:
     bootloader: efi
     memory: "4G"
     cores: 1
-    packages:
-      - tmux
     image_size: "40G"
     tags:
       - key: "AnsibleGroup"
