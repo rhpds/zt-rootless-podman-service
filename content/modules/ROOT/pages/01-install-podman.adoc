@@ -2,7 +2,7 @@
 
 == Install Podman
 
-NOTE: Podman is already installed on the system. This section is for reference only.
+NOTE: Podman may already be installed on your system. If it is not, expand the section below and run the installation steps before proceeding.
 
 == Podman Installation Steps
 [%collapsible]
