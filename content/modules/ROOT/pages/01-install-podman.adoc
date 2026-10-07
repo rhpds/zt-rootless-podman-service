@@ -2,13 +2,18 @@
 
 == Install Podman
 
-NOTE: Podman is already installed on the system. This section is for reference only.
+The first task is to install Podman. Podman is a container runtime that is used to run containers on a Red Hat Enterprise Linux system. It is a replacement for the Docker daemon and provides functionality for running containers as non-root users. You can also run containers or pods of containers as systemd managed services.
+
+For more information on Podman, see the https://www.redhat.com/en/topics/containers/what-is-podman[Podman Documentation].
 
 == Podman Installation Steps
-[%collapsible]
-====
+
+=====
 The first task is to install Podman.
 
+.Install Podman
+[%collapsible]
+====
 Click on the `+run+` button for the code block below.
 
 .Run button
@@ -23,8 +28,8 @@ The output should look similar to the following screenshot.
 
 .Install Podman and Container tools
 image::Aug-27-2024_at_12.36.58-image.png[Aug-27-2024_at_12.36.58-image.png]
-
 ====
+=====
 
 Proceed to the next assignment.
 

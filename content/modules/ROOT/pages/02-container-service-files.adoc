@@ -21,6 +21,7 @@ here].
 
 == Create the configuration directory
 
+=====
 In the terminal we are logged in as the user `+rhel+`. `+rhel+`
 is not a privileged user.
 
@@ -28,18 +29,27 @@ We’ll create a directory in `+rhel+`’s home directory to store our
 unit files. The unit files will be stored in
 `+/home/rhel/.config/containers/systemd/+`.
 
+.Create the configuration directory
+[%collapsible]
+====
 Run the command below by clicking on the `+run+` button.
 
 [source,bash,run]
 ----
 mkdir -p ~/.config/containers/systemd/
 ----
+====
+=====
 
 == Create the unit files
 
+=====
 We will create two unit files. 1) `+httpd.container+` 2)
 `+httpd-data.volume+`
 
+.Create the httpd.container file
+[%collapsible]
+====
 Run the command below, by clicking on the run button, to create the
 `+httpd.container+` file.
 
@@ -47,13 +57,21 @@ Run the command below, by clicking on the run button, to create the
 ----
 touch ~/.config/containers/systemd/httpd.container
 ----
+====
+=====
 
+=====
+.Create the httpd-data.volume file
+[%collapsible]
+====
 Run the command below to create the `+httpd-data.volume+` file.
 
 [source,bash,run]
 ----
 touch ~/.config/containers/systemd/httpd-data.volume
 ----
+====
+=====
 
 We’ll configure these files and discuss their purpose in the next
 assignment. Click next to proceed.

@@ -8,19 +8,31 @@ running Apache from the docker registry. That is because Podman will
 automatically pull the container the first time the container service is
 started.
 
+=====
 Run the following command to reload the systemd manager configuration.
 
+.Reload the systemd manager configuration
+[%collapsible]
+====
 [source,bash,run]
 ----
 systemctl --user daemon-reload
 ----
+====
+=====
 
+=====
 Next, start the `+httpd.service+` that we previously configured.
 
+.Start the httpd service
+[%collapsible]
+====
 [source,bash,run]
 ----
 systemctl --user start httpd.service
 ----
+====
+=====
 
 Starting the `+httpd.service+` will automatically pull the httpd
 container from the docker.io registry.

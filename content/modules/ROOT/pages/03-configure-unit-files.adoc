@@ -7,8 +7,12 @@ files.
 
 == Edit the httpd.container file
 
+=====
 Run the command below by clicking on the `+run+` button to configure the `+httpd.container+` file.
 
+.Edit the httpd.container file
+[%collapsible]
+====
 [source,bash,run]
 ----
 tee -a /home/rhel/.config/containers/systemd/httpd.container << EOF
@@ -28,6 +32,8 @@ PublishPort=8080:80/tcp
 WantedBy=default.target
 EOF
 ----
+====
+=====
 
 The `+[Service]+` section specifies that the `+httpd.container+` service
 should always be restarted regardless if it was shut down cleanly.
@@ -42,8 +48,12 @@ defines port 8080 on the host should map to port 80 in the container.
 
 == Edit the httpd-data.volume file
 
+=====
 Run the command below by clicking on the `+run+` button to configure the `+httpd-data.volume+` file.
 
+.Edit the httpd-data.volume file
+[%collapsible]
+====
 [source,bash,run]
 ----
 tee -a /home/rhel/.config/containers/systemd/httpd-data.volume << EOF
@@ -52,6 +62,8 @@ User=rhel
 Group=rhel
 EOF
 ----
+====
+=====
 
 The `+Volume+` section specifies that the user `+rhel+` and members
 of the group `+rhel+` have rights to modify the persistent volume
@@ -59,8 +71,12 @@ that will be created.
 
 == Verify configuration files have been created successfully
 
+=====
 Let’s check that the configuration files have been created and saved.
 
+.List the unit files
+[%collapsible]
+====
 Run the following command to find the unit files we just saved.
 
 [source,bash,run]
@@ -70,20 +86,34 @@ ls /home/rhel/.config/containers/systemd/
 
 .Aug-28-2024_at_14.40.44-image.png
 image::Aug-28-2024_at_14.40.44-image.png[Aug-28-2024_at_14.40.44-image.png]
+====
+=====
 
+=====
+.View the httpd.container file
+[%collapsible]
+====
 Run the following to view the contents of `+httpd.container+`.
 
 [source,bash,run]
 ----
 cat /home/rhel/.config/containers/systemd/httpd.container
 ----
+====
+=====
 
+=====
+.View the httpd-data.volume file
+[%collapsible]
+====
 Run the following to view the contents of `+httpd-data.volume+`.
 
 [source,bash,run]
 ----
 cat /home/rhel/.config/containers/systemd/httpd-data.volume
 ----
+====
+=====
 
 If you were to create multiple container services, all the unit files
 will be stored in `+/home/rhel/.config/containers/systemd/+`.
