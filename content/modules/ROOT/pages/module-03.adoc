@@ -1,6 +1,6 @@
 = Systemd Runs It
 
-The application is running as a service: five declarations, one start command, the wiring generated. In this module you will manage it the way services are managed — stop it and start it with systemctl, read it from the journal, replace a piece without losing its data — wire it to come up at boot, and then move the same files to the manager that runs the machine.
+The application is running as a service: five declarations, one start command, the wiring generated. In this module you will manage it the way services are managed — stop it and start it with systemctl, read its logs, replace a piece without losing its data — wire it to come up at boot, and then move the same files to the manager that runs the machine.
 
 == Stop It, Start It
 
@@ -38,41 +38,46 @@ image::webcounter-service.png[]
 
 The pod was torn down and rebuilt from scratch, and the count survived — because it is not a property of the pod. It lives in the store's named volume, `store-data`, which systemd did not touch: the volume is declared, and stopping services does not remove it.
 
-== The Journal
+== The Logs
 
-There is no shell in these images — what the application writes to its logs is the debugging surface. Under systemd, that surface is the journal, and each piece has its own:
+There is no shell in these images — what the application writes to its logs is the debugging surface. Podman keeps each container's output, and `podman logs` reads it — the container name is the address:
 
 [source,bash,role=execute]
 ----
-journalctl --user -u web.service
+podman logs systemd-web
 ----
 
 [source,text]
 ----
-Oct 20 16:27:13 rhel systemd-web[415485]: [2026-10-20 20:27:13 +0000] [2] [INFO] Booting worker with pid: 2
-Oct 20 16:27:13 rhel systemd-web[415485]: [2026-10-20 20:27:13 +0000] [3] [INFO] Booting worker with pid: 3
-Oct 20 16:27:13 rhel systemd-web[415485]: store reached at localhost:6379
-Oct 20 16:27:13 rhel systemd-web[415485]: store reached at localhost:6379
+[2026-10-20 20:27:13 +0000] [2] [INFO] Booting worker with pid: 2
+[2026-10-20 20:27:13 +0000] [3] [INFO] Booting worker with pid: 3
+store reached at localhost:6379
+store reached at localhost:6379
 ----
 
-The same lines the pod returned — the frontend's gunicorn workers booting, and the store connection on every page load. No `podman logs`, no container ID to look up: the journal is where a service's output goes, and the unit name is the address.
+The same lines the pod returned — the frontend's gunicorn workers booting, and the store connection on every page load. The container's output is podman's to keep — it goes to the container's log file, not the journal. `podman logs` is the service's log view, and the container name is the address.
 
-The store's journal shows the other half — where its data comes from:
+The store's log shows the other half — where its data comes from:
 
 [source,bash,role=execute]
 ----
-journalctl --user -u store.service
+podman logs systemd-store
 ----
 
 [source,text]
 ----
-Oct 20 16:27:13 rhel systemd-store[415533]: 1:M 20 Oct 2026 20:27:13.059 * DB loaded from disk: 0.000 seconds
-Oct 20 16:27:13 rhel systemd-store[415533]: 1:M 20 Oct 2026 20:27:13.059 * Ready to accept connections tcp
+1:M 20 Oct 2026 20:27:13.059 * DB loaded from disk: 0.000 seconds
+1:M 20 Oct 2026 20:27:13.059 * Ready to accept connections tcp
 ----
 
-On every start the store loads its data from disk — the named volume mounted at `/data`. The journal does not say which volume; the declaration does.
+On every start the store loads its data from disk — the named volume mounted at `/data`. The log does not say which volume; the declaration does.
 
 == Replace a Piece
+
+[WARNING]
+====
+This prose is terrible — it needs to be framed around an update or change to a single component of a pod.
+====
 
 The store's service manages one container. Stop it:
 
@@ -114,7 +119,9 @@ The volume `store-data` — declared in `store.volume`, named — is untouched b
 systemctl --user start store.service
 ----
 
-The generated command is `podman run --replace` — no container by that name exists, so it creates a fresh one. Reload the page in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
+The service regenerates the container from the declaration — no container by that name exists (the stop removed it), so it creates a fresh one. Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
+
+image::webcounter-replace.png[]
 
 Without the declaration, this is the step that would have reset the count to `1`: the image's data point would have landed in an anonymous volume, discarded with the container. Writing it down — `Volume=store.volume:/data` in the declaration — is what moved the count out of the container.
 
@@ -162,7 +169,7 @@ PublishPort=8000:8000
 WantedBy=default.target
 ----
 
-The `[Install]` section says which systemd target pulls the unit in: `default.target` is the user's default — the thing that comes up when the user's systemd manager starts. The deploy reloaded systemd for you, and the generator ran with it — check what it did with the `[Install]` section:
+The `[Install]` section says which systemd target pulls the unit in: `default.target` is the user's default — the thing that comes up when the user's systemd manager starts. The deploy reloaded systemd — check what the generator did with the `[Install]` section:
 
 [source,bash,role=execute]
 ----
@@ -178,7 +185,7 @@ Note what does not work here: `systemctl --user enable`. The generated units are
 
 [source,bash,role=execute]
 ----
-ls /run/user/1000/systemd/generator/default.target.wants/
+ls /run/user/$(id -u)/systemd/generator/default.target.wants/
 ----
 
 [source,text]
@@ -190,18 +197,18 @@ The link `default.target` reads at boot, pointing at `webapp-pod.service` — wr
 
 At boot, something has to bring `default.target` up. For your manager that is linger — the switch that keeps a user's manager running with no session. It is a user-level concern, and its effect is invisible here: the flag flips, and nothing you can watch changes until a reboot the lab cannot do. The system manager has no such piece — it is running before anyone logs in, and it never stops. The same five files, installed one directory over, come up at boot with nothing extra declared — and every step of that can be shown.
 
-== One Directory Over
-
-Everything in this lab has been the user install: five files in your home directory, a generator run by your manager, a service started with `--user`. The same five files run at the system level — from `/etc/containers/systemd/`, under the system's manager. Nothing in the files changes. Who runs them does.
-
-First the user install yields — both installs publish port 8000, and only one can hold it:
+Both installs publish port 8000, and only one can hold it — before the system install, the user install yields:
 
 [source,bash,role=execute]
 ----
 systemctl --user stop webapp-pod.service
 ----
 
-Then the install — the same command, run as root:
+== One Directory Over
+
+Everything in this lab has been the user install: five files in your home directory, a generator run by your manager, a service started with `--user`. The same five files run at the system level — from `/etc/containers/systemd/`, under the system's manager. Nothing in the files changes. Who runs them does.
+
+The install — the same command, run as root:
 
 [source,bash,role=execute]
 ----
@@ -217,7 +224,7 @@ sudo podman quadlet install ~/webapp-quadlet/
 /etc/containers/systemd/webapp/webapp.pod
 ----
 
-The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, and the system generator ran with it: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied. Its link is where yours was:
+The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, so the system generator already ran: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied. Its link is where yours was:
 
 [source,bash,role=execute]
 ----
@@ -236,7 +243,35 @@ Start it — one command, no `--user`:
 sudo systemctl start webapp-pod.service
 ----
 
-The first start pulls the images into root's storage — the application has been yours alone until now, so root has never seen it. Then the application, from root's side:
+The system manager keeps the unit's log — the same journal command, no `--user`:
+
+[source,bash,role=execute]
+----
+journalctl -u web.service
+----
+
+[source,text]
+----
+Oct 21 08:32:21 rhel systemd[1]: Starting web.service...
+Oct 21 08:32:22 rhel systemd[1]: Started web.service.
+----
+
+The entries are system entries — the unit is the system manager's, and the filter matches. The store's, the same way:
+
+[source,bash,role=execute]
+----
+journalctl -u store.service
+----
+
+[source,text]
+----
+Oct 21 08:32:21 rhel systemd[1]: Starting store.service...
+Oct 21 08:32:22 rhel systemd[1]: Started store.service.
+----
+
+The application's own lines are still in podman's log file — the same split as the user side; `sudo podman logs systemd-web` reads them.
+
+Setup pulled the images into root's storage — the same images your user pulled, pre-pulled at provision so the first start has nothing to fetch. Then the application, from root's side:
 
 [source,bash,role=execute]
 ----

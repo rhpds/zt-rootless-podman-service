@@ -32,6 +32,13 @@ pull_public_images rhel \
     registry.access.redhat.com/hi/valkey:latest
 echo "Lab images staged in rhel user storage" >> /tmp/progress.log
 
+# Pre-pull the same images into root's storage — the system quadlet's first start
+# would otherwise pull them at runtime (root's store is separate from rhel's)
+pull_public_images root \
+    ghcr.io/rhel-labs/webcounter-app:latest \
+    registry.access.redhat.com/hi/valkey:latest
+echo "Lab images staged in root storage" >> /tmp/progress.log
+
 cleanup_subscription
 cleanup_tmpfiles
 echo "Setup complete" >> /tmp/progress.log
