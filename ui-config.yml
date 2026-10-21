@@ -13,6 +13,9 @@ antora:
     - name: module-03
       label: "Systemd Runs It"
       solveButton: false
+    - name: module-04
+      label: "A System Service"
+      solveButton: false
 
 tabs:
   - name: ">_ terminal"
