@@ -86,7 +86,7 @@ Start it — one command, no `--user`:
 sudo systemctl start webapp-pod.service
 ----
 
-The system manager keeps the unit's log — the same journal command, no `--user`:
+The system manager keeps the unit's log — the journal is the system's log view, and the unit name is the address:
 
 [source,bash,role=execute]
 ----
@@ -134,6 +134,8 @@ webapp.pod        webapp-pod.service      /etc/containers/systemd/webapp/webapp.
 The same command that listed your five quadlets, pointed at root's: same names, same application, same table — and a STATUS column that is not `inactive/dead`. Plain `podman quadlet list` still shows your five, stopped; root's install is invisible to it. The pod and both containers are `active/running` under the system's manager; the network holds `active/exited` — it ran, and systemd keeps it recorded; the volume is back to `inactive/dead` — it created the volume and finished. The files are identical; the service is not yours.
 
 Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1` — the named volume is root's too. Your volume held the count; root's starts fresh. Same declarations, different world.
+
+image::webcounter-hand-run.png[]
 
 And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the `[Install]` section you declared that put it there.
 

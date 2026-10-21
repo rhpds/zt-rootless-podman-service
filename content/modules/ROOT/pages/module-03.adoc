@@ -49,28 +49,37 @@ podman logs systemd-web
 
 [source,text]
 ----
-[2026-10-20 20:27:13 +0000] [2] [INFO] Booting worker with pid: 2
-[2026-10-20 20:27:13 +0000] [3] [INFO] Booting worker with pid: 3
+[2026-10-21 20:18:49 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2026-10-21 20:18:49 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
+[2026-10-21 20:18:49 +0000] [1] [INFO] Using worker: sync
+[2026-10-21 20:18:49 +0000] [2] [INFO] Booting worker with pid: 2
 store reached at localhost:6379
+[2026-10-21 20:18:49 +0000] [3] [INFO] Booting worker with pid: 3
 store reached at localhost:6379
 ----
 
 The same lines the pod returned — the frontend's gunicorn workers booting, and the store connection on every page load. The container's output is podman's to keep — it goes to the container's log file, not the journal. `podman logs` is the service's log view, and the container name is the address.
 
-The store's log shows the other half — where its data comes from:
+The pod is the other surface — `podman pod logs` merges every container's output, interleaved by when the lines arrived, and the pod name is the address. Each line carries its container's ID:
 
 [source,bash,role=execute]
 ----
-podman logs systemd-store
+podman pod logs webapp
 ----
 
 [source,text]
 ----
-1:M 20 Oct 2026 20:27:13.059 * DB loaded from disk: 0.000 seconds
-1:M 20 Oct 2026 20:27:13.059 * Ready to accept connections tcp
+934fb324e581 [2026-10-21 20:18:49 +0000] [1] [INFO] Starting gunicorn 23.0.0
+19f4a6f66e98 1:M 21 Oct 2026 20:18:49.001 * oO0OoO0OoO0Oo Valkey is starting oO0OoO0OoO0Oo
+19f4a6f66e98 1:M 21 Oct 2026 20:18:49.002 * Running mode=standalone, port=6379.
+934fb324e581 [2026-10-21 20:18:49 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
+934fb324e581 [2026-10-21 20:18:49 +0000] [2] [INFO] Booting worker with pid: 2
+934fb324e581 store reached at localhost:6379
+19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * DB loaded from disk: 0.000 seconds
+19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * Ready to accept connections tcp
 ----
 
-On every start the store loads its data from disk — the named volume mounted at `/data`. The log does not say which volume; the declaration does.
+The store's lines are in the output — DB loaded from disk on every start. The log does not say where that data lives; the declaration does: `Volume=store.volume:/data`.
 
 == Replace a Piece
 
