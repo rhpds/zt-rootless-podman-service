@@ -116,8 +116,6 @@ systemctl --user start store.service
 
 The generated command is `podman run --replace` — no container by that name exists, so it creates a fresh one. Reload the page in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
 
-image::webcounter-volume.png[]
-
 Without the declaration, this is the step that would have reset the count to `1`: the image's data point would have landed in an anonymous volume, discarded with the container. Writing it down — `Volume=store.volume:/data` in the declaration — is what moved the count out of the container.
 
 == The Boot
@@ -270,8 +268,6 @@ webapp.pod        webapp-pod.service      /etc/containers/systemd/webapp/webapp.
 The same command that listed your five quadlets, pointed at root's: same names, same application, same table — and a STATUS column that is not `inactive/dead`. Plain `podman quadlet list` still shows your five, stopped; root's install is invisible to it. The pod and both containers are `active/running` under the system's manager; the network holds `active/exited` — it ran, and systemd keeps it recorded; the volume is back to `inactive/dead` — it created the volume and finished. The files are identical; the who is not.
 
 Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1` — the named volume is root's too. Your volume held the count; root's starts fresh. Same declarations, different world.
-
-image::webcounter-system.png[]
 
 And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the wiring your own manager already followed once in this module.
 

@@ -223,6 +223,4 @@ POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINE
 
 The same pod as the hand-run — same name, three containers — except nobody typed a `podman` command to create it. Open http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, the count starting at `1`, served from the store at `localhost:6379`.
 
-image::webcounter-declared.png[]
-
 The application is running as a service now: five declarations, one command, everything else generated. The next module is living with that — stopping it, reading it, replacing a piece of it — as a service.
