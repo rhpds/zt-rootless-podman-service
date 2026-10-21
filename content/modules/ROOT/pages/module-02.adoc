@@ -91,7 +91,7 @@ Five files, written. Install them — one command, from the directory:
 
 [source,bash,role=execute]
 ----
-podman quadlet install --application=webapp ~/webapp-quadlet/
+podman quadlet install ~/webapp-quadlet/
 ----
 
 [source,text]
@@ -128,14 +128,7 @@ Five quadlets, one application: the APPLICATION column is the install command's 
 
 == What Quadlet Made of It
 
-Tell systemd to re-read its units:
-
-[source,bash,role=execute]
-----
-systemctl --user daemon-reload
-----
-
-Quadlet runs at that moment: it reads the five files and writes real unit files. Recent podman releases reload systemd for you as part of the install; running it by hand is never wrong — this is the step that makes the generator re-read the declaration. Look at what it generated — systemd's view of the same five files:
+The install reloaded systemd for you — that is the entire point of the command — and quadlet ran at that moment: it read the five files and wrote real unit files. Look at what it generated — systemd's view of the same five files:
 
 [source,bash,role=execute]
 ----

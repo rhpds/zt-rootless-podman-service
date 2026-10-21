@@ -141,7 +141,7 @@ Deploy the changed declaration — the same install command, this time with `--r
 
 [source,bash,role=execute]
 ----
-podman quadlet install --application=webapp --replace ~/webapp-quadlet/
+podman quadlet install --replace ~/webapp-quadlet/
 ----
 
 What quadlet actually deployed — the installed copy, verbatim, the file the generator will read:
@@ -162,12 +162,7 @@ PublishPort=8000:8000
 WantedBy=default.target
 ----
 
-The `[Install]` section says which systemd target pulls the unit in: `default.target` is the user's default — the thing that comes up when the user's systemd manager starts. Reload, and check what the generator did with it:
-
-[source,bash,role=execute]
-----
-systemctl --user daemon-reload
-----
+The `[Install]` section says which systemd target pulls the unit in: `default.target` is the user's default — the thing that comes up when the user's systemd manager starts. The deploy reloaded systemd for you, and the generator ran with it — check what it did with the `[Install]` section:
 
 [source,bash,role=execute]
 ----
@@ -210,7 +205,7 @@ Then the install — the same command, run as root:
 
 [source,bash,role=execute]
 ----
-sudo podman quadlet install --application=webapp ~/webapp-quadlet/
+sudo podman quadlet install ~/webapp-quadlet/
 ----
 
 [source,text]
@@ -222,14 +217,7 @@ sudo podman quadlet install --application=webapp ~/webapp-quadlet/
 /etc/containers/systemd/webapp/webapp.pod
 ----
 
-The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. Reload the system manager:
-
-[source,bash,role=execute]
-----
-sudo systemctl daemon-reload
-----
-
-The system generator runs, reads the five files, writes system units — the same generation, the same wiring, the same `[Install]` applied. Its link is where yours was:
+The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, and the system generator ran with it: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied. Its link is where yours was:
 
 [source,bash,role=execute]
 ----
