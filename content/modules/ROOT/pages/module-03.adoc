@@ -271,8 +271,6 @@ The same command that listed your five quadlets, pointed at root's: same names, 
 
 Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1` — the named volume is root's too. Your volume held the count; root's starts fresh. Same declarations, different world.
 
-image::webcounter-system.png[]
-
 And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the wiring your own manager already followed once in this module.
 
 == A Service
