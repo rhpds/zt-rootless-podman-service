@@ -125,4 +125,9 @@ image::count3-replaced.png[]
 
 Without the declaration, this is the step that would have reset the count to `1`: the image's data point would have landed in an anonymous volume, discarded with the container. Writing it down — `Volume=store.volume:/data` in the declaration — is what moved the count out of the container.
 
-A running service is not yet a service that comes back.
+A running service is not yet a service that comes back. The next module makes the application a system service — the kind the machine runs, wired to come up at boot. Port 8000 is already yours, and only one service can hold it. The user install yields:
+
+[source,bash,role=execute]
+----
+systemctl --user stop webapp-pod.service
+----

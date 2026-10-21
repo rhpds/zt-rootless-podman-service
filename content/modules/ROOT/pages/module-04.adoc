@@ -1,87 +1,21 @@
 = A System Service
 
-The service you have been managing is yours: started with `--user`, run by your manager, tied to your session. The same five declarations can make it a system service instead — the kind the machine runs, like every other service on it: up at boot with no session, in the same journal as everything else, tied to nobody's login. In this module you will make that change — the boot wiring first, then the files themselves, one directory over. Nothing in the declaration changes; what the application is does.
+The service you have been managing is yours: started with `--user`, run by your manager, tied to your session. The same five declarations make it a system service — the kind the machine runs, like every other service on it: up at boot with no session, in the same journal as everything else, tied to nobody's login. A system service needs one thing the declaration is still missing: the boot wiring that pulls it in when the machine starts. In this module you will declare it, then move the completed files one directory over — where the system's manager runs them.
 
 == One Directory Over
 
-The application needs to come up at boot, and the wiring that pulls it in is declared, like everything else — one section in the declaration itself.
-
-The declaration lives in your project directory — that is where every change to it happens. Rewrite the pod's file there — the complete declaration now reads:
+The application needs to come up at boot, and the wiring that pulls it in is declared, like everything else — one section in the declaration itself. The declaration lives in your project directory — that is where every change to it happens. Append the section the declaration is missing:
 
 [source,bash,role=execute]
 ----
-cat > ~/webapp-quadlet/webapp.pod <<'EOF'
-[Pod]
-PodName=webapp
-Network=webapp.network
-PublishPort=8000:8000
+cat >> ~/webapp-quadlet/webapp.pod <<'EOF'
 
 [Install]
 WantedBy=default.target
 EOF
 ----
 
-Deploy the changed declaration — the same install command, this time with `--replace`, because the application is already installed:
-
-[source,bash,role=execute]
-----
-podman quadlet install --replace ~/webapp-quadlet/
-----
-
-What quadlet actually deployed — the installed copy, verbatim, the file the generator will read:
-
-[source,bash,role=execute]
-----
-podman quadlet print webapp.pod
-----
-
-[source,text]
-----
-[Pod]
-PodName=webapp
-Network=webapp.network
-PublishPort=8000:8000
-
-[Install]
-WantedBy=default.target
-----
-
-The `[Install]` section says which systemd target pulls the unit in: `default.target` is the user's default — the thing that comes up when the user's systemd manager starts. The deploy reloaded systemd — check what the generator did with the `[Install]` section:
-
-[source,bash,role=execute]
-----
-systemctl --user show -p WantedBy webapp-pod.service
-----
-
-[source,text]
-----
-WantedBy=default.target
-----
-
-Note what does not work here: `systemctl --user enable`. The generated units are not installed — they are written fresh from your declarations at every daemon-reload, so there is nothing for `enable` to enable. That is not a gap: the generator did enable's job itself, while it was generating. What enable does — link a target to a unit — the generator wrote straight into its output:
-
-[source,bash,role=execute]
-----
-ls /run/user/$(id -u)/systemd/generator/default.target.wants/
-----
-
-[source,text]
-----
-webapp-pod.service
-----
-
-The link `default.target` reads at boot, pointing at `webapp-pod.service` — written by the generator from the `[Install]` section you declared, the same link `enable` would have made. The boot wiring is not a promise; it is on disk.
-
-At boot, something has to bring `default.target` up. For your manager that is linger — the switch that keeps a user's manager running with no session. It is a user-level concern, and its effect is invisible here: the flag flips, and nothing you can watch changes until a reboot the lab cannot do. The system manager has no such piece — it is running before anyone logs in, and it never stops. The same five files, installed one directory over, come up at boot with nothing extra declared — and every step of that can be shown.
-
-Both installs publish port 8000, and only one can hold it — before the system install, the user install yields:
-
-[source,bash,role=execute]
-----
-systemctl --user stop webapp-pod.service
-----
-
-Everything in this lab has been a user service: five files in your home directory, run by your manager, tied to your session. The same five files make the application a system service — from `/etc/containers/systemd/`, under the system's manager, the way every other service on the machine runs.
+Everything in this lab has been a user service: five files in your home directory, run by your manager, tied to your session. The same five files, complete with their boot wiring, make the application a system service — from `/etc/containers/systemd/`, under the system's manager, the way every other service on the machine runs.
 
 The install — the same command, run as root:
 
@@ -99,7 +33,39 @@ sudo podman quadlet install ~/webapp-quadlet/
 /etc/containers/systemd/webapp/webapp.pod
 ----
 
-The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, so the system generator already ran: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied. Its link is where yours was:
+The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, so the system generator already ran: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied.
+
+What quadlet deployed — the installed copy, verbatim, the file the generator read:
+
+[source,bash,role=execute]
+----
+sudo podman quadlet print webapp.pod
+----
+
+[source,text]
+----
+[Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+
+[Install]
+WantedBy=default.target
+----
+
+The `[Install]` section says which systemd target pulls the unit in: `default.target` is the system's boot default — the thing the machine comes up to. Check what systemd recorded:
+
+[source,bash,role=execute]
+----
+sudo systemctl show -p WantedBy webapp-pod.service
+----
+
+[source,text]
+----
+WantedBy=default.target
+----
+
+Note what does not work here: `systemctl enable`. The generated units are written fresh from your declarations at every generation — there is nothing for `enable` to enable. That is not a gap: the generator did enable's job itself, while it was generating. What enable does — link a target to a unit — the generator wrote straight into its output:
 
 [source,bash,role=execute]
 ----
@@ -110,6 +76,8 @@ sudo ls /run/systemd/generator/default.target.wants/
 ----
 webapp-pod.service
 ----
+
+The link `default.target` reads at boot, pointing at `webapp-pod.service` — written by the generator from the `[Install]` section you declared, the same link `enable` would have made. The boot wiring is not a promise; it is on disk.
 
 Start it — one command, no `--user`:
 
@@ -122,7 +90,7 @@ The system manager keeps the unit's log — the same journal command, no `--user
 
 [source,bash,role=execute]
 ----
-journalctl -u web.service
+journalctl --no-pager -u web.service
 ----
 
 [source,text]
@@ -135,7 +103,7 @@ The entries are system entries — the unit is the system manager's, and the fil
 
 [source,bash,role=execute]
 ----
-journalctl -u store.service
+journalctl --no-pager -u store.service
 ----
 
 [source,text]
@@ -167,7 +135,7 @@ The same command that listed your five quadlets, pointed at root's: same names, 
 
 Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1` — the named volume is root's too. Your volume held the count; root's starts fresh. Same declarations, different world.
 
-And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the wiring your own manager already followed once in this module.
+And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the `[Install]` section you declared that put it there.
 
 == A Service
 
