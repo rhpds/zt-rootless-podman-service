@@ -1,0 +1,228 @@
+= The Declaration
+
+Bringing the application back means three commands from memory, every boot. In this module you will write the application down: five small text files that declare the network, the pod, the containers, and the data — kept together in a directory you can carry, installed with one command. The files are read by *quadlet* — the generator that turns declarations into systemd services. Writing them down is also where you notice what the hand-run silently got away with: it used whatever network podman picked, and it threw the store's data away with every container.
+
+== Where the Files Go
+
+The five files live in a directory of your own — the application's declaration, kept together the way you keep anything you intend to reuse. Create it:
+
+[source,bash,role=execute]
+----
+mkdir -p ~/webapp-quadlet
+----
+
+Quadlet reads declarations from `~/.config/containers/systemd/` — your own home directory. In the terminal you are the user `rhel`, and `rhel` is not a privileged user: no root, no `/etc`, nothing outside your account. That is what makes this a rootless service — not a flag, not a mode: who is running it, and where the files live. You will not create that directory by hand: the install command copies the files there, under a directory named after the application, and prints every path it wrote.
+
+Quadlet recognizes files by their suffix — `.container` for a container, `.pod` for a pod, `.network` for a network, `.volume` for a volume. Everything else in the directory is ignored.
+
+== The Network
+
+The hand-run never mentioned a network: the pod landed on podman's default. The declaration names the application's own:
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/webapp.network <<'EOF'
+[Network]
+EOF
+----
+
+One line. The file declares a network and nothing else — no subnet, no gateway, no options. The application gets a network it named, instead of one podman chose.
+
+== The Pod
+
+The pod create command, written down:
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/webapp.pod <<'EOF'
+[Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+EOF
+----
+
+Three lines, one per thing the hand-run's command said: the pod's name, the network it joins — the file you just wrote — and the published port, still at the pod level, still published once for the whole application.
+
+== The Containers
+
+The two run commands, written down. The frontend:
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/web.container <<'EOF'
+[Container]
+Image=ghcr.io/rhel-labs/webcounter-app:latest
+Pod=webapp.pod
+EOF
+----
+
+The store — and here is the difference:
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/store.container <<'EOF'
+[Container]
+Image=registry.access.redhat.com/hi/valkey:latest
+Pod=webapp.pod
+Volume=store.volume:/data
+EOF
+----
+
+`Image=` is the image you ran; `Pod=webapp.pod` replaces `--pod webapp` — and it is what ties these declarations into the pod's. The store carries one line the hand-run never had: `Volume=store.volume:/data`. The store's image declares a data point at `/data`; without a named volume, podman creates an anonymous one — created with the container, discarded with the container. That is why replacing the store resets the count: the data lived in the container's throwaway volume. The declaration mounts a *named* volume instead — the file below.
+
+== The Volume
+
+The store's data gets a name:
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/store.volume <<'EOF'
+[Volume]
+VolumeName=store-data
+EOF
+----
+
+A named volume outlives every container. The count is about to stop being a property of whichever container happens to be running.
+
+== Install the Declaration
+
+Five files, written. Install them — one command, from the directory:
+
+[source,bash,role=execute]
+----
+podman quadlet install --application=webapp ~/webapp-quadlet/
+----
+
+[source,text]
+----
+/home/rhel/.config/containers/systemd/webapp/store.container
+/home/rhel/.config/containers/systemd/webapp/store.volume
+/home/rhel/.config/containers/systemd/webapp/web.container
+/home/rhel/.config/containers/systemd/webapp/webapp.network
+/home/rhel/.config/containers/systemd/webapp/webapp.pod
+----
+
+The install command copies the five files into quadlet's directory — the place the generator reads — under a directory named after the application, and prints every path it wrote. The application name is doing real work: the five files are installed as one *application*, a collection of files that live together. What quadlet installs together, it removes together.
+
+Your copies in `~/webapp-quadlet/` are untouched. The declaration's source of truth is the directory you keep; what quadlet reads is a copy of it.
+
+Podman knows what it installed — its own view of the application:
+
+[source,bash,role=execute]
+----
+podman quadlet list
+----
+
+[source,text]
+----
+NAME              UNIT NAME               PATH ON DISK                                                STATUS         APPLICATION  POD
+store.container   store.service           /home/rhel/.config/containers/systemd/webapp/store.container   inactive/dead  webapp       webapp.pod
+store.volume      store-volume.service    /home/rhel/.config/containers/systemd/webapp/store.volume      inactive/dead  webapp
+web.container     web.service             /home/rhel/.config/containers/systemd/webapp/web.container     inactive/dead  webapp       webapp.pod
+webapp.network    webapp-network.service  /home/rhel/.config/containers/systemd/webapp/webapp.network    inactive/dead  webapp
+webapp.pod        webapp-pod.service      /home/rhel/.config/containers/systemd/webapp/webapp.pod        inactive/dead  webapp
+----
+
+Five quadlets, one application: the APPLICATION column is the install command's name at work — the five files grouped as one. Each row pairs a file you wrote with the unit it generates. None are running yet.
+
+== What Quadlet Made of It
+
+Tell systemd to re-read its units:
+
+[source,bash,role=execute]
+----
+systemctl --user daemon-reload
+----
+
+Quadlet runs at that moment: it reads the five files and writes real unit files. Recent podman releases reload systemd for you as part of the install; running it by hand is never wrong — this is the step that makes the generator re-read the declaration. Look at what it generated — systemd's view of the same five files:
+
+[source,bash,role=execute]
+----
+systemctl --user list-unit-files 'web*' 'store*'
+----
+
+[source,text]
+----
+UNIT FILE              STATE     PRESET
+store-volume.service   generated -
+store.service          generated -
+web.service            generated -
+webapp-network.service generated -
+webapp-pod.service     generated -
+
+5 unit files listed.
+----
+
+Five files you wrote, five services you did not have to write as unit files. The names are derived: `webapp.pod` became `webapp-pod.service`, `web.container` became `web.service`, and so on. The state is `generated` — systemd did not install these units; quadlet writes them fresh at every daemon-reload, from your declarations. The declarations — the copies in your project directory — are the source of truth.
+
+Read the generated pod service back:
+
+[source,bash,role=execute]
+----
+systemctl --user cat webapp-pod.service
+----
+
+[source,text]
+----
+# /run/user/1000/systemd/generator/webapp-pod.service
+# Automatically generated by /usr/lib/systemd/user-generators/podman-user-generator
+#
+[X-Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+
+[Unit]
+Wants=podman-user-wait-network-online.service
+After=podman-user-wait-network-online.service
+SourcePath=/home/rhel/.config/containers/systemd/webapp/webapp.pod
+RequiresMountsFor=%t/containers
+Wants=store.service
+Before=store.service
+Wants=web.service
+Before=web.service
+Requires=webapp-network.service
+After=webapp-network.service
+
+[Service]
+SyslogIdentifier=%N
+ExecStart=/usr/bin/podman pod start webapp
+ExecStop=/usr/bin/podman pod stop --ignore --time=10 webapp
+ExecStopPost=/usr/bin/podman pod rm --ignore --force webapp
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile=%t/%N.pid --replace --exit-policy stop --publish 8000:8000 --network systemd-webapp --infra-name webapp-infra --name webapp
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Type=forking
+Restart=on-failure
+PIDFile=%t/%N.pid
+----
+
+You wrote none of this. The generator wrote it from the declarations — and the parts you could not have gotten right by hand are the interesting ones. The `[Unit]` section is the dependency wiring: `Requires=webapp-network.service` — the pod needs its network; `Wants=store.service` and `Wants=web.service` — the pod pulls its containers. And in `ExecStartPre`, note `--network systemd-webapp`: the network created from your one-line file, named after it. Starting and stopping are wired too: `ExecStart` starts the pod, and `ExecStopPost` removes it.
+
+== Start the Application
+
+One command:
+
+[source,bash,role=execute]
+----
+systemctl --user start webapp-pod.service
+----
+
+You started one service, and four came up: the network first, then the pod, then both containers — pulled in by the wiring the generator wrote. Podman sees the same thing it always did:
+
+[source,bash,role=execute]
+----
+podman pod ps
+----
+
+[source,text]
+----
+POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINERS
+933849654f95  webapp      Running     5 seconds ago  8c7a06b4164f  3
+----
+
+The same pod as the hand-run — same name, three containers — except nobody typed a `podman` command to create it. Open http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, the count starting at `1`, served from the store at `localhost:6379`.
+
+image::webcounter-declared.png[]
+
+The application is running as a service now: five declarations, one command, everything else generated. The next module is living with that — stopping it, reading it, replacing a piece of it — as a service.

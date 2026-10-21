@@ -1,22 +1,17 @@
 ---
+
 antora:
   name: modules
   dir: www
   modules:
-    - name: "01-install-podman"
-      label: "Install Podman"
+    - name: module-01
+      label: "Run It by Hand"
       solveButton: false
-    - name: "02-container-service-files"
-      label: "Container Service Files"
+    - name: module-02
+      label: "The Declaration"
       solveButton: false
-    - name: "03-configure-unit-files"
-      label: "Configure Unit Files"
-      solveButton: false
-    - name: "04-start-httpd-container-service"
-      label: "Start Httpd Container Service"
-      solveButton: false
-    - name: "05-verify-container-service"
-      label: "Verify Container Service"
+    - name: module-03
+      label: "Systemd Runs It"
       solveButton: false
 
 tabs:

@@ -1,0 +1,59 @@
+= Run It by Hand
+
+Your application is a web counter. It is two pieces: a web frontend that serves pages and counts views, and a data store that holds the count. The pieces run as containers, grouped into a pod — one network namespace, one published port, one lifecycle. The images are minimal: no shell, no package manager, running as non-root users on unprivileged ports. You configure them from the outside, and what they write to their logs is the debugging surface — there is no logging into them.
+
+In this module you will run the application the way it runs today: by hand. Three commands, typed by you, in order — typed as the user `rhel`, who is not root. Podman runs rootless from that session: images, containers, and pods all land in your own storage. Everything in this lab happens from it.
+
+== Run the Application
+
+The pod is created first. The published port belongs to the pod — port 8000, published once, shared by every container inside:
+
+[source,bash,role=execute]
+----
+podman pod create --name webapp -p 8000:8000
+----
+
+The frontend runs inside the pod. Note what is missing: no environment variable points it at the store. The store's location is the `STORE_HOST` environment variable, and when it is not defined, it is `localhost` — the frontend's own container. Inside a pod, that is exactly right: the pieces share one network namespace, so the frontend's `localhost` is the pod's localhost, and the store is listening on it.
+
+[source,bash,role=execute]
+----
+podman run --pod webapp -d --name web ghcr.io/rhel-labs/webcounter-app:latest
+----
+
+The store runs the same way — and note what else is missing: no `--protected-mode no`. Valkey's protected mode only accepts connections from its own loopback, and the frontend's connection arrives on exactly that: the pieces share the pod's localhost, so the store sees a local connection and accepts it.
+
+[source,bash,role=execute]
+----
+podman run --pod webapp -d --name store registry.access.redhat.com/hi/valkey:latest
+----
+
+== The Page
+
+Open http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser.
+
+image::webcounter-hand-run.png[]
+
+[WARNING]
+====
+If you are using a Chromium based browser, recent changes to the default HSTS policy may rewrite the application URL to HTTPS from HTTP and you will get an error page.
+Edit the URL in the address bar to `http://` and reload the page. This should tell the browser to keep this URL as HTTP for the rest of the lab.
+====
+
+The page renders: *WebCounter*, and a count of page views — `1`, served from the store at `localhost:6379`. Reload and the count increments: the frontend reads the store on every page load, and the store keeps the count. Two containers, one pod, one application — running because you typed three commands.
+
+== Bring It Down
+
+The pod is one thing, and it comes down as one thing — stop and remove in one command:
+
+[source,bash,role=execute]
+----
+podman pod stop webapp && podman pod rm webapp
+----
+
+The pod, both containers, and the shared network view are gone. Nothing is left to clean up by hand.
+
+== Nothing Was Declared
+
+The application existed because you typed three commands. Bringing it back means typing them again — from memory, in the right order, with the flags you remember. And it means typing them on every boot, on every machine, for every hand that ever runs this application. Nothing recorded what the application *is*: which images, which port, how the pieces find each other, where the count lives.
+
+An application that exists only while someone's hands are on it is not a service. A service is declared once and runs under a supervisor that starts it, stops it, and brings it back — no hands required. The next module writes the application down.
