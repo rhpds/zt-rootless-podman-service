@@ -1,10 +1,22 @@
 = A System Service
 
-The service you have been managing is yours: started with `--user`, run by your manager, tied to your session. The same five declarations make it a system service — the kind the machine runs, like every other service on it: up at boot with no session, in the same journal as everything else, tied to nobody's login. A system service needs one thing the declaration is still missing: the boot wiring that pulls it in when the machine starts. In this module you will declare it, then move the completed files one directory over — where the system's manager runs them.
+So far, the service you've been working with is a user service.
+It runs tied to your login, which is great for lowering privileges and running things like the music player daemon or some timers.
+We could try to run typical system services this way by enabling lingering services, but the design will likely outweigh the benefits.
+
+Usually we want applications to start when the system does, run as some non-privileged system user, access privileged ports, and so on.
+So are there any changes we need to make to the `quadlet` in order to make it a system service? 
+Can we just install it in `/etc` and move on? 
+
 
 == One Directory Over
 
-The application needs to come up at boot, and the wiring that pulls it in is declared, like everything else — one section in the declaration itself. The declaration lives in your project directory — that is where every change to it happens. Append the section the declaration is missing:
+We do need to make one change, but only to one definition.
+Recall that the *pod* service is the keystone for the entire quadlet.
+That's the one the generator tied all of the others back to.
+
+All we need to do then is to add an *Install* section to that file and `systemctl` will do the rest.
+Let's just set the `default` target as when we want our application to be ready.
 
 [source,bash,role=execute]
 ----
@@ -15,9 +27,21 @@ WantedBy=default.target
 EOF
 ----
 
-Everything in this lab has been a user service: five files in your home directory, run by your manager, tied to your session. The same five files, complete with their boot wiring, make the application a system service — from `/etc/containers/systemd/`, under the system's manager, the way every other service on the machine runs.
+While most of the `quadlet` definition revolves around the container creation, we still can add standard `systemd` unit file directives to make use of standard service behavior.
+We saw that with the *Unit* section in the previous exercise. 
+We're not just using some tool that can create convincing looking unit files from some template, we've got actual integration with the service that runs and monitors services on the host.
 
-The install — the same command, run as root:
+One thing to note is that there are no images in the system store.
+[source,bash,role=execute]
+----
+sudo podman images
+----
+....
+....
+
+The install process will pull the images defined for us, no need to do any prep work on the system.
+
+The install uses the same command, just run as root:
 
 [source,bash,role=execute]
 ----
@@ -33,9 +57,7 @@ sudo podman quadlet install ~/webapp-quadlet/
 /etc/containers/systemd/webapp/webapp.pod
 ----
 
-The same install command, the same application name, the same paths out — one directory over. Quadlet reads `/etc/containers/systemd/` when podman runs as root, exactly as it reads your home directory when it runs as you, and the files land under a directory named after the application both times. The install reloaded the system manager, so the system generator already ran: it read the five files, wrote system units — the same generation, the same wiring, the same `[Install]` applied.
-
-What quadlet deployed — the installed copy, verbatim, the file the generator read:
+We can see the new *Install* block when we examine the quadlet via podman.
 
 [source,bash,role=execute]
 ----
@@ -53,7 +75,7 @@ PublishPort=8000:8000
 WantedBy=default.target
 ----
 
-The `[Install]` section says which systemd target pulls the unit in: `default.target` is the system's boot default — the thing the machine comes up to. Check what systemd recorded:
+And we can confirm that the `daemon-reload` took effect and that `systemd` also sees the new dependency.
 
 [source,bash,role=execute]
 ----
@@ -65,7 +87,9 @@ sudo systemctl show -p WantedBy webapp-pod.service
 WantedBy=default.target
 ----
 
-Note what does not work here: `systemctl enable`. The generated units are written fresh from your declarations at every generation — there is nothing for `enable` to enable. That is not a gap: the generator did enable's job itself, while it was generating. What enable does — link a target to a unit — the generator wrote straight into its output:
+One change from typical services that we didn't really go into before is that these services don't use the standard `enable` command.
+The generator takes care of not only reloading when things change, but also ensuring the services are enabled when installed.
+The symlink that would be created by `systemctl enable` already exists.
 
 [source,bash,role=execute]
 ----
@@ -77,16 +101,15 @@ sudo ls /run/systemd/generator/default.target.wants/
 webapp-pod.service
 ----
 
-The link `default.target` reads at boot, pointing at `webapp-pod.service` — written by the generator from the `[Install]` section you declared, the same link `enable` would have made. The boot wiring is not a promise; it is on disk.
-
-Start it — one command, no `--user`:
+That means the application is ready immediately after install.
 
 [source,bash,role=execute]
 ----
 sudo systemctl start webapp-pod.service
 ----
 
-The system manager keeps the unit's log — the journal is the system's log view, and the unit name is the address:
+The logs show up in the journal as we'd expect with any other service.
+We can use the names as we saw earlier to pull individual logs for a component.
 
 [source,bash,role=execute]
 ----
@@ -99,7 +122,6 @@ Oct 21 08:32:21 rhel systemd[1]: Starting web.service...
 Oct 21 08:32:22 rhel systemd[1]: Started web.service.
 ----
 
-The entries are system entries — the unit is the system manager's, and the filter matches. The store's, the same way:
 
 [source,bash,role=execute]
 ----
@@ -112,10 +134,17 @@ Oct 21 08:32:21 rhel systemd[1]: Starting store.service...
 Oct 21 08:32:22 rhel systemd[1]: Started store.service.
 ----
 
-The application's own lines are still in podman's log file — the same split as the user side; `sudo podman logs systemd-web` reads them.
+Setup pulled the images into root's storage so the first start has nothing to fetch. 
 
-Setup pulled the images into root's storage — the same images your user pulled, pre-pulled at provision so the first start has nothing to fetch. Then the application, from root's side:
+[source,bash,role=execute]
+----
+sudo podman images
+----
+....
+....
 
+If we list the quadlets, we only see the system quadlets as root not the user. 
+We didn't remove the original user quadlet, just stopped it.
 [source,bash,role=execute]
 ----
 sudo podman quadlet list
@@ -131,14 +160,26 @@ webapp.network    webapp-network.service  /etc/containers/systemd/webapp/webapp.
 webapp.pod        webapp-pod.service      /etc/containers/systemd/webapp/webapp.pod       active/running webapp
 ----
 
-The same command that listed your five quadlets, pointed at root's: same names, same application, same table — and a STATUS column that is not `inactive/dead`. Plain `podman quadlet list` still shows your five, stopped; root's install is invisible to it. The pod and both containers are `active/running` under the system's manager; the network holds `active/exited` — it ran, and systemd keeps it recorded; the volume is back to `inactive/dead` — it created the volume and finished. The files are identical; the service is not yours.
+You'll notice that some of these are listed as running, others exited, and one as dead.
+Status reflects the point of view of systemd.
+The pod and containers are long running processes, and currently up and live.
+The network comes up, does its job, and exits cleanly if all is well.
+The volume is the oddity, as it reports `inactive/dead` having created its volume and finishig.
 
-Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1` — the named volume is root's too. Your volume held the count; root's starts fresh. Same declarations, different world.
+
+Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1`.
+That's the new service listening on the same port.
+We have a brand new volume, so the counter resets.
 
 image::webcounter-hand-run.png[]
 
-And at boot: the system manager has been running since the machine started. It brings `default.target` up, the generator's link pulls in `webapp-pod.service`, and the application comes up with no session and no one's hands on it. The lab cannot reboot to show it — but every link in the chain is on disk and demonstrated: the files in `/etc/containers/systemd/`, the generator's link beside them, and the `[Install]` section you declared that put it there.
+== Full Service Applications
 
-== A Service
+Container, pods, and quadlets make a powerful combination for running application services.
+Containers provide the independence from the host for application dependencies and bring isolation with control.
+Pods assemble individual containers into logical groups to share resources easily across containers and manage them more as a single unit.
+Quadlets integrate containers and pods into standard system services, without the need for complete hand written service definitions.
 
-You took an application and made it a service — twice. First a user service: five files in your home directory, rootless, wired by a generator, started with `--user`, its data in a named volume of your own. Then a system service: the same five files, one directory over, under the system's manager — nothing in them changed, and the application went from something you run to something the machine runs. That is what a declaration buys: the application is five small text files instead of three commands in someone's shell history, and five small text files run anywhere — under your manager or the system's, on this machine or a hundred. That is where the podman system role picks up.
+The combination also makes configuration management and application distribution easier since all of this is text files with an installer.
+
+Check out our other labs if you'd like to see how to extend these concepts with automation via ansible.

@@ -1,17 +1,18 @@
 = Systemd Runs It
 
-The application is running as a service: five declarations, one start command, the wiring generated. In this module you will manage it the way services are managed — stop it and start it with systemctl, read its logs, replace a piece without losing its data.
+Ok let's start simple with some basic `systemctl` commands and the effect on the containers.
 
 == Stop It, Start It
 
-Stopping is the same operation the hand-run did, with the service's verb:
+Stopping is the same operation as any other user service.
+The main service for the whole set is the `pod`.
 
 [source,bash,role=execute]
 ----
 systemctl --user stop webapp-pod.service
 ----
 
-Check what is left:
+And the pod?
 
 [source,bash,role=execute]
 ----
@@ -23,9 +24,13 @@ podman pod ps
 POD ID        NAME        STATUS      CREATED     INFRA ID    # OF CONTAINERS
 ----
 
-Nothing. The hand-run's `podman pod stop` left an exited pod behind, waiting to be started or removed; the generated unit does not leave the application half-alive. Its `ExecStopPost` runs `podman pod rm --force` — systemd stops the pod and removes it. Stopping a service tears the application down completely.
+Nothing? 
+Normally when we stop a container or a pod, it stays around as 'exited', what happened?
 
-Starting it builds it back:
+Looking back at the generated unit, there's an `ExecStopPost` that runs `podman pod rm --force` which means systemd completely removes the pod when it's stopped.
+
+Well we had data we wanted persisted, does that mean it's gone too?
+Start the service and see.
 
 [source,bash,role=execute]
 ----
@@ -36,50 +41,28 @@ Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: t
 
 image::webcounter-service.png[]
 
-The pod was torn down and rebuilt from scratch, and the count survived — because it is not a property of the pod. It lives in the store's named volume, `store-data`, which systemd did not touch: the volume is declared, and stopping services does not remove it.
+The pod was torn down and rebuilt from scratch, but the count survived.
+The `volume` that stored the data persisted separately from the pod, so removing the containers didn't mean losing the data.
 
 == The Logs
 
-There is no shell in these images — what the application writes to its logs is the debugging surface. Podman keeps each container's output, and `podman logs` reads it — the container name is the address:
+We can check the pod logs to confirm that the webapp pulled the database at launch.
 
 [source,bash,role=execute]
 ----
-podman logs systemd-web
+podman pod logs webapp -c systemd-store
 ----
 
 [source,text]
 ----
-[2026-10-21 20:18:49 +0000] [1] [INFO] Starting gunicorn 23.0.0
-[2026-10-21 20:18:49 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
-[2026-10-21 20:18:49 +0000] [1] [INFO] Using worker: sync
-[2026-10-21 20:18:49 +0000] [2] [INFO] Booting worker with pid: 2
-store reached at localhost:6379
-[2026-10-21 20:18:49 +0000] [3] [INFO] Booting worker with pid: 3
-store reached at localhost:6379
-----
-
-The same lines the pod returned — the frontend's gunicorn workers booting, and the store connection on every page load. The container's output is podman's to keep — it goes to the container's log file, not the journal. `podman logs` is the service's log view, and the container name is the address.
-
-The pod is the other surface — `podman pod logs` merges every container's output, interleaved by when the lines arrived, and the pod name is the address. Each line carries its container's ID:
-
-[source,bash,role=execute]
-----
-podman pod logs webapp
-----
-
-[source,text]
-----
-934fb324e581 [2026-10-21 20:18:49 +0000] [1] [INFO] Starting gunicorn 23.0.0
 19f4a6f66e98 1:M 21 Oct 2026 20:18:49.001 * oO0OoO0OoO0Oo Valkey is starting oO0OoO0OoO0Oo
 19f4a6f66e98 1:M 21 Oct 2026 20:18:49.002 * Running mode=standalone, port=6379.
-934fb324e581 [2026-10-21 20:18:49 +0000] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
-934fb324e581 [2026-10-21 20:18:49 +0000] [2] [INFO] Booting worker with pid: 2
-934fb324e581 store reached at localhost:6379
 19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * DB loaded from disk: 0.000 seconds
 19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * Ready to accept connections tcp
 ----
 
-The store's lines are in the output — DB loaded from disk on every start. The log does not say where that data lives; the declaration does: `Volume=store.volume:/data`.
+There it is, DB loaded from disk on start. 
+The log does not say where that data lives; the declaration does: `Volume=store.volume:/data`.
 
 == Replace a Piece
 
@@ -88,14 +71,18 @@ The store's lines are in the output — DB loaded from disk on every start. The 
 This prose is terrible — it needs to be framed around an update or change to a single component of a pod.
 ====
 
-The store's service manages one container. Stop it:
+We can still get to the individual containers for logs and other troubleshooting even though they are in pod managed by a set of dependent services.
+Let's say we had an update to apply to the `valkey` service, can we just work on that component without affecting the others?
 
+
+First, let's stop it.
 [source,bash,role=execute]
 ----
 systemctl --user stop store.service
 ----
 
-The application never stopped — the pod is still running, the frontend still serving. Check what is left:
+Check what `podman` has to say about running containers.
+We'll use `--format` to just get their names.
 
 [source,bash,role=execute]
 ----
@@ -108,8 +95,10 @@ webapp-infra
 systemd-web
 ----
 
-The store's container is not exited — it is gone. The generated unit's `ExecStop` runs `podman rm -v -f`: stopping the service removes the container. The container is gone. The data is not:
+Nothing named `store` in the list at all.
+Like the `pod`, the generator added an `ExecStopPost` to the container service as well, so it was removed after it was stopped.
 
+But what about the data?
 [source,bash,role=execute]
 ----
 podman volume ls
@@ -121,21 +110,25 @@ DRIVER      VOLUME NAME
 local       store-data
 ----
 
-The volume `store-data` — declared in `store.volume`, named — is untouched by the container's removal. Start the service again:
+The volume we created is still there even though the container that uses it was completely removed.
 
 [source,bash,role=execute]
 ----
 systemctl --user start store.service
 ----
 
-The service regenerates the container from the declaration — no container by that name exists (the stop removed it), so it creates a fresh one. Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
+The service regenerates the container from the declaration.
+
+Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
 
 image::count3-replaced.png[]
 
-Without the declaration, this is the step that would have reset the count to `1`: the image's data point would have landed in an anonymous volume, discarded with the container. Writing it down — `Volume=store.volume:/data` in the declaration — is what moved the count out of the container.
+These sorts of design points need to be considered when creating `quadlets` and services. 
+But it also means we get two different but very useful operating modes.
+We have a complete application that gets managed together, but we still can replace specific components when needed.
+And since that container service is using the `latest` tag, the stop/start cycle would have been enough to pull down a new image if configured for it.
 
-A running service is not yet a service that comes back. The next module makes the application a system service — the kind the machine runs, wired to come up at boot. Port 8000 is already yours, and only one service can hold it. The user install yields:
-
+Let's stop the user service and move on to turning this into a system level service instead.
 [source,bash,role=execute]
 ----
 systemctl --user stop webapp-pod.service
