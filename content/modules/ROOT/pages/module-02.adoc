@@ -56,15 +56,13 @@ The container file holds all of the options we'd pass to `podman run` on a comma
 [source,bash,role=execute]
 ----
 cat > ~/webapp-quadlet/web.container <<'EOF'
-[Unit]
-After=store.container
-Requires=store.container
-
 [Container]
 Image=ghcr.io/rhel-labs/webcounter-app:latest
 Pod=webapp.pod
 EOF
 ----
+`Image` is the full specification of the image this container will pull and run.
+We assign both of them to the pod we created earlier, just like in the manual run in the first exercise.
 
 [source,bash,role=execute]
 ----
@@ -76,16 +74,10 @@ Volume=store.volume:/data
 EOF
 ----
 
-`Image` is the full specification of the image this container will pull and run.
-We assign both of them to the pod we created earlier, just like in the manual run in the first exercise.
-
-The web application can safely start before valkey is available and will automatically connect, but since we're writing systemd units that dependency can be explicit.
-The *Unit* section is standard systemd syntax.
-
-Notice there's an additional line in the `store` definition: *Volume*.
-This needs the name of the volume to be used as well as the mount point inside the container.
+Notice there's a new line in the `store` definition: *Volume*.
+This needs the name of the volume to be created as well as the mount point inside the container.
 By declaring we're using a volume, we've also created a dependency on that volume being created first.
-That gets handled automatically, but is good to keep in mind if we're using more complicated volumes than the one we'll define next.
+That gets handled automatically, but is good to keep in mind if we're using more complicated dependencies between components.
 
 == The Volume
 
@@ -223,6 +215,7 @@ Start, stop, pre-, post-, all configured without you needing to do anything.
 == Start the Application
 
 How well did the generator do?
+The pod is the keystone of the whole quadlet, so starting that should launch the applcation.
 
 [source,bash,role=execute]
 ----

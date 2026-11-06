@@ -31,16 +31,6 @@ While most of the `quadlet` definition revolves around the container creation, w
 We saw that with the *Unit* section in the previous exercise. 
 We're not just using some tool that can create convincing looking unit files from some template, we've got actual integration with the service that runs and monitors services on the host.
 
-One thing to note is that there are no images in the system store.
-[source,bash,role=execute]
-----
-sudo podman images
-----
-....
-....
-
-The install process will pull the images defined for us, no need to do any prep work on the system.
-
 The install uses the same command, just run as root:
 
 [source,bash,role=execute]
@@ -134,15 +124,6 @@ Oct 21 08:32:21 rhel systemd[1]: Starting store.service...
 Oct 21 08:32:22 rhel systemd[1]: Started store.service.
 ----
 
-Setup pulled the images into root's storage so the first start has nothing to fetch. 
-
-[source,bash,role=execute]
-----
-sudo podman images
-----
-....
-....
-
 If we list the quadlets, we only see the system quadlets as root not the user. 
 We didn't remove the original user quadlet, just stopped it.
 [source,bash,role=execute]
@@ -152,20 +133,19 @@ sudo podman quadlet list
 
 [source,text]
 ----
-NAME              UNIT NAME               PATH ON DISK                                    STATUS         APPLICATION  POD
-store.container   store.service           /etc/containers/systemd/webapp/store.container  active/running webapp       webapp.pod
-store.volume      store-volume.service    /etc/containers/systemd/webapp/store.volume     inactive/dead  webapp
-web.container     web.service             /etc/containers/systemd/webapp/web.container    active/running webapp       webapp.pod
-webapp.network    webapp-network.service  /etc/containers/systemd/webapp/webapp.network   active/exited  webapp
-webapp.pod        webapp-pod.service      /etc/containers/systemd/webapp/webapp.pod       active/running webapp
+NAME              UNIT NAME               PATH ON DISK                                    STATUS         APPLICATION
+tore.container  store.service           /etc/containers/systemd/store.container  active/running  .webapp-quadlet.app
+store.volume     store-volume.service    /etc/containers/systemd/store.volume     active/exited   .webapp-quadlet.app
+web.container    web.service             /etc/containers/systemd/web.container    active/running  .webapp-quadlet.app
+webapp.network   webapp-network.service  /etc/containers/systemd/webapp.network   active/exited   .webapp-quadlet.app
+webapp.pod       webapp-pod.service      /etc/containers/systemd/webapp.pod       active/running  .webapp-quadlet.app
 ----
 
-You'll notice that some of these are listed as running, others exited, and one as dead.
+You'll notice that some of these are listed as running, others exited.
 Status reflects the point of view of systemd.
 The pod and containers are long running processes, and currently up and live.
 The network comes up, does its job, and exits cleanly if all is well.
-The volume is the oddity, as it reports `inactive/dead` having created its volume and finishig.
-
+Same for the volume unit, it's created the volume for the `store` container's use and exited cleanly.
 
 Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1`.
 That's the new service listening on the same port.

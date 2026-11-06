@@ -55,21 +55,18 @@ podman pod logs webapp -c systemd-store
 
 [source,text]
 ----
-19f4a6f66e98 1:M 21 Oct 2026 20:18:49.001 * oO0OoO0OoO0Oo Valkey is starting oO0OoO0OoO0Oo
-19f4a6f66e98 1:M 21 Oct 2026 20:18:49.002 * Running mode=standalone, port=6379.
-19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * DB loaded from disk: 0.000 seconds
-19f4a6f66e98 1:M 21 Oct 2026 20:18:49.003 * Ready to accept connections tcp
+1:M 06 Nov 2026 18:23:50.441 * Loading RDB produced by Valkey version 9.0.7
+1:M 06 Nov 2026 18:23:50.441 * RDB age 20 seconds
+1:M 06 Nov 2026 18:23:50.441 * RDB memory usage when created 0.91 Mb
+1:M 06 Nov 2026 18:23:50.441 * Done loading RDB, keys loaded: 1, keys expired: 0.
+1:M 06 Nov 2026 18:23:50.441 * DB loaded from disk: 0.000 seconds
+1:M 06 Nov 2026 18:23:50.441 * Ready to accept connections tcp
 ----
 
 There it is, DB loaded from disk on start. 
 The log does not say where that data lives; the declaration does: `Volume=store.volume:/data`.
 
 == Replace a Piece
-
-[WARNING]
-====
-This prose is terrible — it needs to be framed around an update or change to a single component of a pod.
-====
 
 We can still get to the individual containers for logs and other troubleshooting even though they are in pod managed by a set of dependent services.
 Let's say we had an update to apply to the `valkey` service, can we just work on that component without affecting the others?
