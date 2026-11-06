@@ -2,10 +2,10 @@
 
 First what is a `quadlet`?
 
-It's a collection of systemd unit files that declaritivly manage pods, containers, volumes and more.
+It's a collection of systemd unit files that declaratively manage pods, containers, volumes and more.
 It's also the `podman` subcommand that we'll use to manage them.
 We'll convert those manual `pod` commands along with a few other bits of application knowledge into something `systemd` will generate a working service from.
-This let's us manage containers as a whole without needing an orchestration system like kubernetes.
+This lets us manage containers as a whole without needing an orchestration system like kubernetes.
 
 == The quadlet files
 
@@ -17,7 +17,7 @@ Since quadlets are essentially text, this makes them good candidates for source 
 mkdir -p ~/webapp-quadlet
 ----
 
-Quadlet recognizes files by their suffix — `.container` for container defintions, `.pod` for a pod, and so on.
+Quadlet recognizes files by their suffix — `.container` for container definitions, `.pod` for a pod, and so on.
 
 == The Network
 
@@ -47,7 +47,7 @@ EOF
 ----
 
 Here we've provided a port we want to be published to the outside world via the host's port 8000.
-We've also tied it to the newtwork we created.
+We've also tied it to the network we created.
 
 == The Containers
 
@@ -142,7 +142,7 @@ This is a single service made up of several units all intertwined.
 
 == What Quadlet Made of It
 
-At install `quadlet` not only copied files, it also informed systemd of the new servicesby automatically reloading systemd as the user.
+At install `quadlet` not only copied files, it also informed systemd of the new services by automatically reloading systemd as the user.
 
 [source,bash,role=execute]
 ----
@@ -163,7 +163,7 @@ webapp-pod.service     generated -
 
 The service names are based on the file names: `webapp.pod` becomes `webapp-pod.service`.
 
-Notice the the state is `generated`, each time a `daemon-reload` is run, these will be updated from the files in `.config/containers/systemd`.
+Notice the state is `generated`, each time a `daemon-reload` is run, these will be updated from the files in `.config/containers/systemd`.
 
 
 You can still use the standard `systemctl` tools on these units even though they are generated.
@@ -215,7 +215,7 @@ Start, stop, pre-, post-, all configured without you needing to do anything.
 == Start the Application
 
 How well did the generator do?
-The pod is the keystone of the whole quadlet, so starting that should launch the applcation.
+The pod is the keystone of the whole quadlet, so starting that should launch the application.
 
 [source,bash,role=execute]
 ----

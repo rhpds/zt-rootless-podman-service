@@ -134,7 +134,7 @@ sudo podman quadlet list
 [source,text]
 ----
 NAME              UNIT NAME               PATH ON DISK                                    STATUS         APPLICATION
-tore.container  store.service           /etc/containers/systemd/store.container  active/running  .webapp-quadlet.app
+store.container  store.service           /etc/containers/systemd/store.container  active/running  .webapp-quadlet.app
 store.volume     store-volume.service    /etc/containers/systemd/store.volume     active/exited   .webapp-quadlet.app
 web.container    web.service             /etc/containers/systemd/web.container    active/running  .webapp-quadlet.app
 webapp.network   webapp-network.service  /etc/containers/systemd/webapp.network   active/exited   .webapp-quadlet.app
