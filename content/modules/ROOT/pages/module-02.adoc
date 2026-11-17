@@ -173,6 +173,9 @@ You can still use the standard `systemctl` tools on these units even though they
 systemctl --user cat webapp-pod.service
 ----
 
+.The full generated unit file _(click to expand)_
+[%collapsible]
+====
 [source,text]
 ----
 # /run/user/1006/systemd/generator/webapp-pod.service
@@ -206,6 +209,7 @@ Type=forking
 Restart=on-failure
 PIDFile=%t/%N.pid
 ----
+====
 
 That's a whole lot more than the 4 line file you wrote.
 All of the service and dependency lines were created by the generator.
