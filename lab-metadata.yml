@@ -1,0 +1,56 @@
+# lab-metadata.yml
+# Single Point of Truth for Lab Information
+
+lab:
+  name: "Configure a rootless Podman service"
+  shortname: "zt-rootless-podman-service"
+  maintainer: "Nate Lager (nlager@redhat.com)" 
+  
+  description:
+    summary: "Learn how to turn an application run by hand into a rootless systemd service declared with Quadlet"
+    goal: "Users leave this hands-on scenario with knowledge they can apply to their own container workloads: running a multi-container application as a pod, declaring the pod, its containers, its network, and its data as Quadlet files, letting systemd generate and manage the services, managing the application with systemctl and the journal, replacing a piece without losing its data to a named volume, wiring the application to start at boot with no one's hands on it, and moving the same declaration from the user install to the system install."
+    concepts:
+      - "Run a pod by hand"
+      - "Quadlet declarations: .pod, .container, .network, .volume"
+      - "The systemd user generator and generated units"
+      - "Managing services with systemctl --user"
+      - "Service logs in the journal"
+      - "Named volumes that outlive containers"
+      - "Boot wiring: [Install] and the generator's enable-link"
+      - "From the user install to the system install"
+    use_case: "Deploy containerized applications as rootless systemd services"
+    time_to_complete: "30"
+    
+  git_ref:
+    production: "main"
+    development: "dev"
+
+# DYNAMIC EXTRACTION SOURCES:
+# ===========================
+#
+# GENERATED FILES:
+# description.adoc: Generated from lab.description (goal, concepts, use_case)
+# README.md: Generated from configuration extraction (maintainer, summary, instances, networks, firewall)
+# dev.yaml: Generated using git_ref.development (defaults to "main" if not specified)
+# prod.yaml: Generated using git_ref.production (required)
+#
+# Example usage:
+# lab:
+#   name: "Red Hat OpenShift Networking Basics"      # Full name of the lab that appears in the catalog
+#   shortname: "zt-ocp-networking-basics"            # Shortname for the lab (used for catalog entry)
+#   maintainer: "Wilson Harris (wharris@redhat.com)" # Lab maintainer / developer
+#
+#   description:
+#     summary: "Learn the fundamentals of networking in Red Hat OpenShift" # Short summary of the lab
+#     goal: "Understand OpenShift networking concepts and configuration"   # Longer description of the lab's goal
+#     concepts:                                                            # List of concepts covered in the lab
+#       - "OpenShift Services"
+#       - "Routes and Ingress"
+#       - "Network Policies"
+#     use_case: "Configure networking for containerized applications"      # Use case for the lab
+#     time_to_complete: "10"                                               # time in minutes to complete the lab
+#   
+#   git_ref:
+#     production: "prod"    # Production git reference (required)
+#     # development: "dev"  # Optional: defaults to "main" if not specified
+#

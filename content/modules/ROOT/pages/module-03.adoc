@@ -1,0 +1,132 @@
+= Systemd Runs It
+
+Ok let's start simple with some basic `systemctl` commands and the effect on the containers.
+
+== Stop It, Start It
+
+Stopping is the same operation as any other user service.
+The main service for the whole set is the `pod`.
+
+[source,bash,role=execute]
+----
+systemctl --user stop webapp-pod.service
+----
+
+And the pod?
+
+[source,bash,role=execute]
+----
+podman pod ps
+----
+
+[source,text]
+----
+POD ID        NAME        STATUS      CREATED     INFRA ID    # OF CONTAINERS
+----
+
+Nothing? 
+Normally when we stop a container or a pod, it stays around as 'exited', what happened?
+
+Looking back at the generated unit, there's an `ExecStopPost` that runs `podman pod rm --force` which means systemd completely removes the pod when it's stopped.
+
+Well we had data we wanted persisted, does that mean it's gone too?
+Start the service and see.
+
+[source,bash,role=execute]
+----
+systemctl --user start webapp-pod.service
+----
+
+Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders again, and the count kept going — it did not start over.
+
+image::webcounter-service.png[]
+
+The pod was torn down and rebuilt from scratch, but the count survived.
+The `volume` that stored the data persisted separately from the pod, so removing the containers didn't mean losing the data.
+
+== The Logs
+
+We can check the pod logs to confirm that the webapp pulled the database at launch.
+
+[source,bash,role=execute]
+----
+podman pod logs webapp -c systemd-store
+----
+
+[source,text]
+----
+1:M 06 Nov 2026 18:23:50.441 * Loading RDB produced by Valkey version 9.0.7
+1:M 06 Nov 2026 18:23:50.441 * RDB age 20 seconds
+1:M 06 Nov 2026 18:23:50.441 * RDB memory usage when created 0.91 Mb
+1:M 06 Nov 2026 18:23:50.441 * Done loading RDB, keys loaded: 1, keys expired: 0.
+1:M 06 Nov 2026 18:23:50.441 * DB loaded from disk: 0.000 seconds
+1:M 06 Nov 2026 18:23:50.441 * Ready to accept connections tcp
+----
+
+There it is, DB loaded from disk on start. 
+The log does not say where that data lives; the declaration does: `Volume=store.volume:/data`.
+
+== Replace a Piece
+
+We can still get to the individual containers for logs and other troubleshooting even though they are in pod managed by a set of dependent services.
+Let's say we had an update to apply to the `valkey` service, can we just work on that component without affecting the others?
+
+
+First, let's stop it.
+[source,bash,role=execute]
+----
+systemctl --user stop store.service
+----
+
+Check what `podman` has to say about running containers.
+We'll use `--format` to just get their names.
+
+[source,bash,role=execute]
+----
+podman ps --format "{{.Names}}"
+----
+
+[source,text]
+----
+webapp-infra
+systemd-web
+----
+
+Nothing named `store` in the list at all.
+Like the `pod`, the generator added an `ExecStopPost` to the container service as well, so it was removed after it was stopped.
+
+But what about the data?
+[source,bash,role=execute]
+----
+podman volume ls
+----
+
+[source,text]
+----
+DRIVER      VOLUME NAME
+local       store-data
+----
+
+The volume we created is still there even though the container that uses it was completely removed.
+
+[source,bash,role=execute]
+----
+systemctl --user start store.service
+----
+
+The service regenerates the container from the declaration.
+
+Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the count kept going. The container is brand new; the data is not — it lives in the named volume, which every store container mounts and none of them owns.
+
+image::count3-replaced.png[]
+
+These sorts of design points need to be considered when creating `quadlets` and services. 
+But it also means we get two different but very useful operating modes.
+We have a complete application that gets managed together, but we still can replace specific components when needed.
+And since that container service is using the `latest` tag, the stop/start cycle would have been enough to pull down a new image if configured for it.
+
+Let's stop the user service and move on to turning this into a system level service instead.
+[source,bash,role=execute]
+----
+systemctl --user stop webapp-pod.service
+----

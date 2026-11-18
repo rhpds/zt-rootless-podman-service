@@ -1,0 +1,246 @@
+= The Declaration
+
+First what is a `quadlet`?
+
+It's a collection of systemd unit files that declaratively manage pods, containers, volumes and more.
+It's also the `podman` subcommand that we'll use to manage them.
+We'll convert those manual `pod` commands along with a few other bits of application knowledge into something `systemd` will generate a working service from.
+This lets us manage containers as a whole without needing an orchestration system like kubernetes.
+
+== The quadlet files
+
+Create the directory for our quadlet files.
+Since quadlets are essentially text, this makes them good candidates for source controlled deployments.
+
+[source,bash,role=execute]
+----
+mkdir -p ~/webapp-quadlet
+----
+
+Quadlet recognizes files by their suffix — `.container` for container definitions, `.pod` for a pod, and so on.
+
+== The Network
+
+One of the things we can create is a network.
+This isn't strictly needed in our lab setup since we'll be using a pod, but it allows containers a way to talk to each other that the `default` podman network wouldn't.
+It's also useful if you need to specify a particular host interface, change the IP range of containers, etc.
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/webapp.network <<'EOF'
+[Network]
+EOF
+----
+
+== The Pod
+
+The `pod` is what creates the shared namespaces and lets our application use `localhost` for communication.
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/webapp.pod <<'EOF'
+[Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+EOF
+----
+
+Here we've provided a port we want to be published to the outside world via the host's port 8000.
+We've also tied it to the network we created.
+
+== The Containers
+
+The container file holds all of the options we'd pass to `podman run` on a command line.
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/web.container <<'EOF'
+[Container]
+Image=ghcr.io/rhel-labs/webcounter-app:latest
+Pod=webapp.pod
+EOF
+----
+`Image` is the full specification of the image this container will pull and run.
+We assign both of them to the pod we created earlier, just like in the manual run in the first exercise.
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/store.container <<'EOF'
+[Container]
+Image=registry.access.redhat.com/hi/valkey:latest
+Pod=webapp.pod
+Volume=store.volume:/data
+EOF
+----
+
+Notice there's a new line in the `store` definition: *Volume*.
+This needs the name of the volume to be created as well as the mount point inside the container.
+By declaring we're using a volume, we've also created a dependency on that volume being created first.
+That gets handled automatically, but is good to keep in mind if we're using more complicated dependencies between components.
+
+== The Volume
+
+The store's data lived in the container, which means it would survive a simple restart, but nothing else.
+For a real application, we need a place to persist that data outside the container.
+
+[source,bash,role=execute]
+----
+cat > ~/webapp-quadlet/store.volume <<'EOF'
+[Volume]
+VolumeName=store-data
+EOF
+----
+
+A named volume like this outlives the container. 
+This is the simplest definition of a working volume, and leaves all the details to `podman` to create.
+
+Each of these files have more options that track various command line options that can be passed to `podman` for complicated configurations.
+The https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html[full documentation^] has all of the different possible options.
+
+== Install the Declaration
+
+For user services, quadlet reads declarations from `~/.config/containers/systemd/`.
+However, you don't need to create that directory or copy any files.
+The `install` command will install everything in the folder as one application.
+
+[source,bash,role=execute]
+----
+podman quadlet install ~/webapp-quadlet/
+----
+
+[source,text]
+----
+/home/rhel/.config/containers/systemd/webapp/store.container
+/home/rhel/.config/containers/systemd/webapp/store.volume
+/home/rhel/.config/containers/systemd/webapp/web.container
+/home/rhel/.config/containers/systemd/webapp/webapp.network
+/home/rhel/.config/containers/systemd/webapp/webapp.pod
+----
+
+Your copies in `~/webapp-quadlet/` are untouched. 
+This mechanism makes source controlled containerized services very easy to integrate into a GitOps style workflow.
+
+You can see a list of available quadlets.
+[source,bash,role=execute]
+----
+podman quadlet list
+----
+
+[source,text]
+----
+NAME              UNIT NAME               PATH ON DISK                                                STATUS         APPLICATION  POD
+store.container   store.service           /home/rhel/.config/containers/systemd/webapp/store.container   inactive/dead  webapp       webapp.pod
+store.volume      store-volume.service    /home/rhel/.config/containers/systemd/webapp/store.volume      inactive/dead  webapp
+web.container     web.service             /home/rhel/.config/containers/systemd/webapp/web.container     inactive/dead  webapp       webapp.pod
+webapp.network    webapp-network.service  /home/rhel/.config/containers/systemd/webapp/webapp.network    inactive/dead  webapp
+webapp.pod        webapp-pod.service      /home/rhel/.config/containers/systemd/webapp/webapp.pod        inactive/dead  webapp
+----
+
+While each of this is a separate unit, the APPLICATION column is the install command's name at work.
+This is a single service made up of several units all intertwined.
+
+== What Quadlet Made of It
+
+At install `quadlet` not only copied files, it also informed systemd of the new services by automatically reloading systemd as the user.
+
+[source,bash,role=execute]
+----
+systemctl --user list-unit-files 'web*' 'store*'
+----
+
+[source,text]
+----
+UNIT FILE              STATE     PRESET
+store-volume.service   generated -
+store.service          generated -
+web.service            generated -
+webapp-network.service generated -
+webapp-pod.service     generated -
+
+5 unit files listed.
+----
+
+The service names are based on the file names: `webapp.pod` becomes `webapp-pod.service`.
+
+Notice the state is `generated`, each time a `daemon-reload` is run, these will be updated from the files in `.config/containers/systemd`.
+
+
+You can still use the standard `systemctl` tools on these units even though they are generated.
+
+[source,bash,role=execute]
+----
+systemctl --user cat webapp-pod.service
+----
+
+.The full generated unit file _(click to expand)_
+[%collapsible]
+====
+[source,text]
+----
+# /run/user/1006/systemd/generator/webapp-pod.service
+# Automatically generated by /usr/lib/systemd/user-generators/podman-user-generator
+#
+[X-Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+
+[Unit]
+Wants=podman-user-wait-network-online.service
+After=podman-user-wait-network-online.service
+SourcePath=/home/rhel/.config/containers/systemd/webapp/webapp.pod
+RequiresMountsFor=%t/containers
+Wants=store.service
+Before=store.service
+Wants=web.service
+Before=web.service
+Requires=webapp-network.service
+After=webapp-network.service
+
+[Service]
+SyslogIdentifier=%N
+ExecStart=/usr/bin/podman pod start webapp
+ExecStop=/usr/bin/podman pod stop --ignore --time=10 webapp
+ExecStopPost=/usr/bin/podman pod rm --ignore --force webapp
+ExecStartPre=/usr/bin/podman pod create --infra-conmon-pidfile=%t/%N.pid --replace --exit-policy stop --publish 8000:8000 --network systemd-webapp --infra-name webapp-infra --name webapp
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Type=forking
+Restart=on-failure
+PIDFile=%t/%N.pid
+----
+====
+
+That's a whole lot more than the 4 line file you wrote.
+All of the service and dependency lines were created by the generator.
+The pod needs to start after the network in order to publish a port, but before all of the containers it creates namespaces for.
+Start, stop, pre-, post-, all configured without you needing to do anything.
+
+== Start the Application
+
+How well did the generator do?
+The pod is the keystone of the whole quadlet, so starting that should launch the application.
+
+[source,bash,role=execute]
+----
+systemctl --user start webapp-pod.service
+----
+
+[source,bash,role=execute]
+----
+podman pod ps
+----
+
+[source,text]
+----
+POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINERS
+933849654f95  webapp      Running     5 seconds ago  8c7a06b4164f  3
+----
+
+The same pod as the hand-run except now it's managed via systemd. 
+Open http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, the count starting at `1`.
+
+image::webcounter-hand-run.png[]
+
+The containerized application is running as a service now, what does that mean for day to day management?
+Let's explore further in the next exercise.

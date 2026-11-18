@@ -1,0 +1,165 @@
+= A System Service
+
+So far, the service you've been working with is a user service.
+It runs tied to your login, which is great for lowering privileges and running things like the music player daemon or some timers.
+We could try to run typical system services this way by enabling lingering services, but the design will likely outweigh the benefits.
+
+Usually we want applications to start when the system does, run as some non-privileged system user, access privileged ports, and so on.
+So are there any changes we need to make to the `quadlet` in order to make it a system service? 
+Can we just install it in `/etc` and move on? 
+
+
+== One Directory Over
+
+We do need to make one change, but only to one definition.
+Recall that the *pod* service is the keystone for the entire quadlet.
+That's the one the generator tied all of the others back to.
+
+All we need to do then is to add an *Install* section to that file and `systemctl` will do the rest.
+Let's just set the `default` target as when we want our application to be ready.
+
+[source,bash,role=execute]
+----
+cat >> ~/webapp-quadlet/webapp.pod <<'EOF'
+
+[Install]
+WantedBy=default.target
+EOF
+----
+
+While most of the `quadlet` definition revolves around the container creation, we still can add standard `systemd` unit file directives to make use of standard service behavior.
+We saw that with the *Unit* section in the previous exercise. 
+We're not just using some tool that can create convincing looking unit files from some template, we've got actual integration with the service that runs and monitors services on the host.
+
+The install uses the same command, just run as root:
+
+[source,bash,role=execute]
+----
+sudo podman quadlet install ~/webapp-quadlet/
+----
+
+[source,text]
+----
+/etc/containers/systemd/webapp/store.container
+/etc/containers/systemd/webapp/store.volume
+/etc/containers/systemd/webapp/web.container
+/etc/containers/systemd/webapp/webapp.network
+/etc/containers/systemd/webapp/webapp.pod
+----
+
+We can see the new *Install* block when we examine the quadlet via podman.
+
+[source,bash,role=execute]
+----
+sudo podman quadlet print webapp.pod
+----
+
+[source,text]
+----
+[Pod]
+PodName=webapp
+Network=webapp.network
+PublishPort=8000:8000
+
+[Install]
+WantedBy=default.target
+----
+
+And we can confirm that the `daemon-reload` took effect and that `systemd` also sees the new dependency.
+
+[source,bash,role=execute]
+----
+sudo systemctl show -p WantedBy webapp-pod.service
+----
+
+[source,text]
+----
+WantedBy=default.target
+----
+
+One change from typical services that we didn't really go into before is that these services don't use the standard `enable` command.
+The generator takes care of not only reloading when things change, but also ensuring the services are enabled when installed.
+The symlink that would be created by `systemctl enable` already exists.
+
+[source,bash,role=execute]
+----
+sudo ls /run/systemd/generator/default.target.wants/
+----
+
+[source,text]
+----
+webapp-pod.service
+----
+
+That means the application is ready immediately after install.
+
+[source,bash,role=execute]
+----
+sudo systemctl start webapp-pod.service
+----
+
+The logs show up in the journal as we'd expect with any other service.
+We can use the names as we saw earlier to pull individual logs for a component.
+
+[source,bash,role=execute]
+----
+journalctl --no-pager -u web.service
+----
+
+[source,text]
+----
+Oct 21 08:32:21 rhel systemd[1]: Starting web.service...
+Oct 21 08:32:22 rhel systemd[1]: Started web.service.
+----
+
+
+[source,bash,role=execute]
+----
+journalctl --no-pager -u store.service
+----
+
+[source,text]
+----
+Oct 21 08:32:21 rhel systemd[1]: Starting store.service...
+Oct 21 08:32:22 rhel systemd[1]: Started store.service.
+----
+
+If we list the quadlets, we only see the system quadlets as root not the user. 
+We didn't remove the original user quadlet, just stopped it.
+[source,bash,role=execute]
+----
+sudo podman quadlet list
+----
+
+[source,text]
+----
+NAME              UNIT NAME               PATH ON DISK                                    STATUS         APPLICATION
+store.container  store.service           /etc/containers/systemd/store.container  active/running  .webapp-quadlet.app
+store.volume     store-volume.service    /etc/containers/systemd/store.volume     active/exited   .webapp-quadlet.app
+web.container    web.service             /etc/containers/systemd/web.container    active/running  .webapp-quadlet.app
+webapp.network   webapp-network.service  /etc/containers/systemd/webapp.network   active/exited   .webapp-quadlet.app
+webapp.pod       webapp-pod.service      /etc/containers/systemd/webapp.pod       active/running  .webapp-quadlet.app
+----
+
+You'll notice that some of these are listed as running, others exited.
+Status reflects the point of view of systemd.
+The pod and containers are long running processes, and currently up and live.
+The network comes up, does its job, and exits cleanly if all is well.
+Same for the volume unit, it's created the volume for the `store` container's use and exited cleanly.
+
+Reload http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser: the page renders, and the count starts over at `1`.
+That's the new service listening on the same port.
+We have a brand new volume, so the counter resets.
+
+image::webcounter-hand-run.png[]
+
+== Full Service Applications
+
+Container, pods, and quadlets make a powerful combination for running application services.
+Containers provide the independence from the host for application dependencies and bring isolation with control.
+Pods assemble individual containers into logical groups to share resources easily across containers and manage them more as a single unit.
+Quadlets integrate containers and pods into standard system services, without the need for complete hand written service definitions.
+
+The combination also makes configuration management and application distribution easier since all of this is text files with an installer.
+
+Check out our other labs if you'd like to see how to extend these concepts with automation via ansible.

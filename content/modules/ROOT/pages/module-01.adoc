@@ -1,0 +1,65 @@
+= Run an application as a pod
+
+In this lab we'll work with a simple web counter application.
+It's made from two components, a gunicorn web app and a valkey data store to hold the count.
+Each component is a separate container, but we'll launch them as a single pod.
+A pod provides a set of shared namespaces for things like networking and gives a single view of the whole application.
+
+== Run the Application
+
+The pod is created first. 
+The published port for the web application gets attached to the pod at creation.
+
+[source,bash,role=execute]
+----
+podman pod create --name webapp -p 8000:8000
+----
+
+The two components are configured to communicate over localhost, which is shared within the pod.
+[source,bash,role=execute]
+----
+podman run --pod webapp -d --name web ghcr.io/rhel-labs/webcounter-app:latest
+----
+
+[source,bash,role=execute]
+----
+podman run --pod webapp -d --name store registry.access.redhat.com/hi/valkey:latest
+----
+
+== The Page
+
+Open http://webcounter-{guid}.{domain}/[*the web counter*^] in your browser.
+
+image::webcounter-hand-run.png[]
+
+[WARNING]
+====
+If you are using a Chromium based browser, recent changes to the default HSTS policy may rewrite the application URL to HTTPS from HTTP and you will get an error page.
+Edit the URL in the address bar to `http://` and reload the page. This should tell the browser to keep this URL as HTTP for the rest of the lab.
+====
+
+The page renders: *WebCounter*, and a count of page views — `1`.
+Reload and the count increments: the frontend reads the store on every page load, and the store keeps the count. 
+Two containers, one pod, one application — running because you typed three commands.
+
+== Bring It Down
+
+The pod is one thing, and it comes down as one thing — stop and remove in one command:
+
+[source,bash,role=execute]
+----
+podman pod stop webapp && podman pod rm webapp
+----
+
+The pod, both containers, and the shared network view are gone. Nothing is left to clean up by hand.
+
+== Nothing Was Declared
+
+The basic operations of a `pod` are simple and straightforward, but they were manual.
+Not very good if we want our web counter as a production service.
+Or as a fleet of production services that need more complicated container configurations.
+
+To turn this from an application to a service, we need a way to declare these settings and have something else manage the creation.
+And the lifecycle operations (start, stop, etc) should be something we already use like `systemctl`.
+
+This is where `quadlets` enter the arena.
