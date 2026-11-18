@@ -103,10 +103,11 @@ The https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html[full do
 For user services, quadlet reads declarations from `~/.config/containers/systemd/`.
 However, you don't need to create that directory or copy any files.
 The `install` command will install everything in the folder as one application.
+The `application` flag lets us name our quadlet for future reference.
 
 [source,bash,role=execute]
 ----
-podman quadlet install ~/webapp-quadlet/
+podman quadlet install --application webapp ~/webapp-quadlet/
 ----
 
 [source,text]
