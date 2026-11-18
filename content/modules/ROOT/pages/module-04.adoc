@@ -35,7 +35,7 @@ The install uses the same command, just run as root:
 
 [source,bash,role=execute]
 ----
-sudo podman quadlet install ~/webapp-quadlet/
+sudo podman quadlet install --application webapp ~/webapp-quadlet/
 ----
 
 [source,text]
@@ -93,6 +93,8 @@ webapp-pod.service
 
 That means the application is ready immediately after install.
 
+  webapp-pod.service      /home/rhel/.config/containers/systemd/webapp/webapp.pod        inactive/dead  webapp
+
 [source,bash,role=execute]
 ----
 sudo systemctl start webapp-pod.service
@@ -133,12 +135,12 @@ sudo podman quadlet list
 
 [source,text]
 ----
-NAME              UNIT NAME               PATH ON DISK                                    STATUS         APPLICATION
-store.container  store.service           /etc/containers/systemd/store.container  active/running  .webapp-quadlet.app
-store.volume     store-volume.service    /etc/containers/systemd/store.volume     active/exited   .webapp-quadlet.app
-web.container    web.service             /etc/containers/systemd/web.container    active/running  .webapp-quadlet.app
-webapp.network   webapp-network.service  /etc/containers/systemd/webapp.network   active/exited   .webapp-quadlet.app
-webapp.pod       webapp-pod.service      /etc/containers/systemd/webapp.pod       active/running  .webapp-quadlet.app
+NAME             UNIT NAME               PATH ON DISK                                    STATUS          APPLICATION  POD
+store.container  store.service           /etc/containers/systemd/webapp/store.container  active/running  webapp       webapp.pod
+store.volume     store-volume.service    /etc/containers/systemd/webapp/store.volume     active/exited   webapp       
+web.container    web.service             /etc/containers/systemd/webapp/web.container    active/running  webapp       webapp.pod
+webapp.network   webapp-network.service  /etc/containers/systemd/webapp/webapp.network   active/exited   webapp       
+webapp.pod       webapp-pod.service      /etc/containers/systemd/webapp/webapp.pod       active/running  webapp
 ----
 
 You'll notice that some of these are listed as running, others exited.
